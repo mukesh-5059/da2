@@ -1,0 +1,46 @@
+# Node / Frontend Build Outputs & Dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+*.lcov
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment Variables & Local Configs
+.env
+.env.local
+.env.*.local
+
+# Python / Backend Outputs & Databases
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+*.db-journal
+
+# IDEs & System Files
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.DS_Store
+Thumbs.db
+
+# Impeccable Local State
+.impeccable/live/
+.impeccable/*.local.json
