@@ -192,9 +192,9 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                           borderRadius: '12px',
                           fontSize: '0.75rem',
                           fontWeight: 700,
-                          backgroundColor: hType === 'Boys' || hType === 'M' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(236, 72, 153, 0.15)',
-                          color: hType === 'Boys' || hType === 'M' ? '#60a5fa' : '#f472b6',
-                          border: `1px solid ${hType === 'Boys' || hType === 'M' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
+                          backgroundColor: (hType as string) === 'Boys' || (hType as string) === 'M' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(236, 72, 153, 0.15)',
+                          color: (hType as string) === 'Boys' || (hType as string) === 'M' ? '#60a5fa' : '#f472b6',
+                          border: `1px solid ${(hType as string) === 'Boys' || (hType as string) === 'M' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
                         }}
                       >
                         {hType} Hostel
@@ -373,8 +373,8 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                         const rType = room.Type || (room as any).type_name || 'Single';
                         const rRent = room.RoomRent || (room as any).rent_per_month || (room as any).RoomRent || 0;
 
-                        const isVacant = rStatus === 'Vacant' || rStatus === 'AVAILABLE';
-                        const isOccupied = rStatus === 'Occupied' || rStatus === 'OCCUPIED';
+                        const isVacant = (rStatus as string) === 'Vacant' || (rStatus as string) === 'AVAILABLE';
+                        const isOccupied = (rStatus as string) === 'Occupied' || (rStatus as string) === 'OCCUPIED';
                         const statusClass = isVacant ? 'vacant' : isOccupied ? 'occupied' : 'maint';
                         const badgeClass = isVacant ? 'badge-vacant' : isOccupied ? 'badge-occupied' : 'badge-maint';
 
@@ -433,8 +433,8 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                     const rent = room.RoomRent || (room as any).rent_per_month || (room as any).RoomRent || 0;
                     const rStatus = room.Status || (room as any).status;
 
-                    const isVacant = rStatus === 'Vacant' || rStatus === 'AVAILABLE';
-                    const isOccupied = rStatus === 'Occupied' || rStatus === 'OCCUPIED';
+                    const isVacant = (rStatus as string) === 'Vacant' || (rStatus as string) === 'AVAILABLE';
+                    const isOccupied = (rStatus as string) === 'Occupied' || (rStatus as string) === 'OCCUPIED';
 
                     return (
                       <tr key={rNo}>

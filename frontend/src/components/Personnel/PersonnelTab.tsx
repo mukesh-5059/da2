@@ -17,6 +17,7 @@ interface PersonnelTabProps {
   onDeleteWarden: (id: string) => Promise<void>;
   onSaveStaff: (data: Partial<Staff>, isEdit: boolean) => Promise<void>;
   onDeleteStaff: (id: string) => Promise<void>;
+  onSelectStudent?: (student: Student) => void;
 }
 
 export const PersonnelTab: React.FC<PersonnelTabProps> = ({
@@ -30,6 +31,7 @@ export const PersonnelTab: React.FC<PersonnelTabProps> = ({
   onDeleteWarden,
   onSaveStaff,
   onDeleteStaff,
+  onSelectStudent,
 }) => {
   const [subTab, setSubTab] = useState<'students' | 'wardens' | 'staff'>('students');
   const [guardianStudent, setGuardianStudent] = useState<Student | null>(null);
@@ -67,6 +69,7 @@ export const PersonnelTab: React.FC<PersonnelTabProps> = ({
           onSaveStudent={onSaveStudent}
           onDeleteStudent={onDeleteStudent}
           onViewGuardians={setGuardianStudent}
+          onSelectStudent={onSelectStudent}
         />
       )}
 

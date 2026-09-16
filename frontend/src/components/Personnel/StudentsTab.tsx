@@ -7,6 +7,7 @@ interface StudentsTabProps {
   onSaveStudent: (data: Partial<Student>, isEdit: boolean) => Promise<void>;
   onDeleteStudent: (id: string) => Promise<void>;
   onViewGuardians: (student: Student) => void;
+  onSelectStudent?: (student: Student) => void;
 }
 
 export const StudentsTab: React.FC<StudentsTabProps> = ({
@@ -14,6 +15,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
   onSaveStudent,
   onDeleteStudent,
   onViewGuardians,
+  onSelectStudent,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Partial<Student> | null>(null);
@@ -130,7 +132,26 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                     {sId}
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{fName} {lName}</div>
+                    {onSelectStudent ? (
+                      <button
+                        onClick={() => onSelectStudent(student)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--accent-primary)',
+                          fontWeight: 600,
+                          padding: 0,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          textDecoration: 'underline',
+                          fontSize: '0.9rem',
+                        }}
+                      >
+                        {fName} {lName}
+                      </button>
+                    ) : (
+                      <div style={{ fontWeight: 600 }}>{fName} {lName}</div>
+                    )}
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Admitted: {admDate || 'N/A'}</div>
                   </td>
                   <td>

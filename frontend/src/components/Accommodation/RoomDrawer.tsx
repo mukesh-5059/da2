@@ -109,7 +109,7 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
           {loading ? (
             <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', padding: '12px' }}>Loading occupant records...</div>
           ) : activeAllocations.length === 0 ? (
-            <div style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '10px', color: 'var(--text-muted)', fontSize: '0.85rem', textStyle: 'italic' }}>
+            <div style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '10px', color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>
               No active student assigned to this room.
             </div>
           ) : (

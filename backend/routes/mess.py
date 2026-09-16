@@ -106,10 +106,11 @@ def add_meal():
     conn = get_db()
     try:
         cursor = conn.cursor()
+        cost = data.get('Cost') if data.get('Cost') is not None else data.get('Price', 0.0)
         cursor.execute('''
-            INSERT INTO MEAL (MealID, MessID, MealName, StartTime, EndTime, Price)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (data.get('MealID'), data['MessID'], data['MealName'], data.get('StartTime'), data.get('EndTime'), data.get('Price')))
+            INSERT INTO MEAL (MealID, MessID, MealName, Description, Cost)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (data.get('MealID'), data['MessID'], data['MealName'], data.get('Description', ''), cost))
         conn.commit()
         return jsonify({'message': 'Meal added successfully'}), 201
     except Exception as e:
@@ -124,11 +125,12 @@ def update_meal(meal_id):
     conn = get_db()
     try:
         cursor = conn.cursor()
+        cost = data.get('Cost') if data.get('Cost') is not None else data.get('Price', 0.0)
         cursor.execute('''
             UPDATE MEAL 
-            SET MessID = ?, MealName = ?, StartTime = ?, EndTime = ?, Price = ?
+            SET MessID = ?, MealName = ?, Description = ?, Cost = ?
             WHERE MealID = ?
-        ''', (data['MessID'], data['MealName'], data.get('StartTime'), data.get('EndTime'), data.get('Price'), meal_id))
+        ''', (data['MessID'], data['MealName'], data.get('Description', ''), cost, meal_id))
         conn.commit()
         return jsonify({'message': 'Meal updated successfully'}), 200
     except Exception as e:
@@ -189,9 +191,9 @@ def add_mess_schedule():
     try:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO MESS_SCHEDULE (ScheduleID, MessID, MealID, DayOfWeek, ItemName, Description)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (data.get('ScheduleID'), data['MessID'], data['MealID'], data['DayOfWeek'], data['ItemName'], data.get('Description')))
+            INSERT INTO MESS_SCHEDULE (ScheduleID, MessID, MealID, DayOfWeek, MealTime)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (data.get('ScheduleID'), data['MessID'], data['MealID'], data['DayOfWeek'], data.get('MealTime', 'Breakfast')))
         conn.commit()
         return jsonify({'message': 'Mess schedule added successfully'}), 201
     except Exception as e:
@@ -208,9 +210,9 @@ def update_mess_schedule(schedule_id):
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE MESS_SCHEDULE 
-            SET MessID = ?, MealID = ?, DayOfWeek = ?, ItemName = ?, Description = ?
+            SET MessID = ?, MealID = ?, DayOfWeek = ?, MealTime = ?
             WHERE ScheduleID = ?
-        ''', (data['MessID'], data['MealID'], data['DayOfWeek'], data['ItemName'], data.get('Description'), schedule_id))
+        ''', (data['MessID'], data['MealID'], data['DayOfWeek'], data.get('MealTime', 'Breakfast'), schedule_id))
         conn.commit()
         return jsonify({'message': 'Mess schedule updated successfully'}), 200
     except Exception as e:
@@ -276,9 +278,9 @@ def add_mess_enrollment():
     try:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO MESS_ENROLLMENT (EnrollmentID, StudentID, MessID, StartDate, EndDate, IsActive)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (data.get('EnrollmentID'), data['StudentID'], data['MessID'], data['StartDate'], data.get('EndDate'), data.get('IsActive', 1)))
+            INSERT INTO MESS_ENROLLMENT (EnrollmentID, StudentID, MessID, MealPlanType, StartDate, EndDate, IsActive)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (data.get('EnrollmentID'), data['StudentID'], data['MessID'], data.get('MealPlanType', 'Veg'), data['StartDate'], data.get('EndDate'), data.get('IsActive', 1)))
         conn.commit()
         return jsonify({'message': 'Mess enrollment added successfully'}), 201
     except Exception as e:
@@ -295,9 +297,9 @@ def update_mess_enrollment(enrollment_id):
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE MESS_ENROLLMENT 
-            SET StudentID = ?, MessID = ?, StartDate = ?, EndDate = ?, IsActive = ?
+            SET StudentID = ?, MessID = ?, MealPlanType = ?, StartDate = ?, EndDate = ?, IsActive = ?
             WHERE EnrollmentID = ?
-        ''', (data['StudentID'], data['MessID'], data['StartDate'], data.get('EndDate'), data.get('IsActive', 1), enrollment_id))
+        ''', (data['StudentID'], data['MessID'], data.get('MealPlanType', 'Veg'), data['StartDate'], data.get('EndDate'), data.get('IsActive', 1), enrollment_id))
         conn.commit()
         return jsonify({'message': 'Mess enrollment updated successfully'}), 200
     except Exception as e:

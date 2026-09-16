@@ -1,4 +1,4 @@
-import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Guardian, Staff } from '../types';
+import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Guardian, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction } from '../types';
 
 const API_BASE = '/api';
 
@@ -209,4 +209,156 @@ export const api = {
     const res = await fetch(`${API_BASE}/staff/${id}`, { method: 'DELETE' });
     return handleResponse(res);
   },
+
+  // Mess
+  getMesses: async (): Promise<Mess[]> => {
+    const res = await fetch(`${API_BASE}/messes`);
+    return handleResponse<Mess[]>(res);
+  },
+  createMess: async (data: Partial<Mess>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/messes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updateMess: async (id: string, data: Partial<Mess>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/messes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteMess: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/messes/${id}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Meals
+  getMeals: async (messId?: string): Promise<Meal[]> => {
+    const url = messId ? `${API_BASE}/meals?mess_id=${messId}` : `${API_BASE}/meals`;
+    const res = await fetch(url);
+    return handleResponse<Meal[]>(res);
+  },
+  createMeal: async (data: Partial<Meal>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/meals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updateMeal: async (id: string, data: Partial<Meal>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/meals/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteMeal: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/meals/${id}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Mess Schedules
+  getMessSchedules: async (messId?: string): Promise<MessSchedule[]> => {
+    const url = messId ? `${API_BASE}/mess-schedules?mess_id=${messId}` : `${API_BASE}/mess-schedules`;
+    const res = await fetch(url);
+    return handleResponse<MessSchedule[]>(res);
+  },
+  createMessSchedule: async (data: Partial<MessSchedule>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/mess-schedules`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteMessSchedule: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/mess-schedules/${id}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Mess Enrollments
+  getMessEnrollments: async (studentId?: string): Promise<MessEnrollment[]> => {
+    const url = studentId ? `${API_BASE}/mess-enrollments?student_id=${studentId}` : `${API_BASE}/mess-enrollments`;
+    const res = await fetch(url);
+    return handleResponse<MessEnrollment[]>(res);
+  },
+  createMessEnrollment: async (data: Partial<MessEnrollment>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/mess-enrollments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteMessEnrollment: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/mess-enrollments/${id}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Monthly Bills
+  getMonthlyBills: async (studentId?: string, paymentStatus?: string): Promise<MonthlyBill[]> => {
+    const params = new URLSearchParams();
+    if (studentId) params.append('student_id', studentId);
+    if (paymentStatus) params.append('payment_status', paymentStatus);
+    const url = `${API_BASE}/monthly-bills?${params.toString()}`;
+    const res = await fetch(url);
+    return handleResponse<MonthlyBill[]>(res);
+  },
+  createMonthlyBill: async (data: Partial<MonthlyBill>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/monthly-bills`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updateMonthlyBill: async (billId: string, data: Partial<MonthlyBill>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/monthly-bills/${billId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteMonthlyBill: async (billId: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/monthly-bills/${billId}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Payment Transactions
+  getPaymentTransactions: async (billId?: string, paymentMode?: string): Promise<PaymentTransaction[]> => {
+    const params = new URLSearchParams();
+    if (billId) params.append('bill_id', billId);
+    if (paymentMode) params.append('payment_mode', paymentMode);
+    const url = `${API_BASE}/payment-transactions?${params.toString()}`;
+    const res = await fetch(url);
+    return handleResponse<PaymentTransaction[]>(res);
+  },
+  createPaymentTransaction: async (data: Partial<PaymentTransaction>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/payment-transactions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updatePaymentTransaction: async (paymentId: string, data: Partial<PaymentTransaction>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/payment-transactions/${paymentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deletePaymentTransaction: async (paymentId: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/payment-transactions/${paymentId}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
 };
+

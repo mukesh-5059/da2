@@ -10,9 +10,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: 'accommodations', label: 'Accommodations', icon: BedDouble },
     { id: 'personnel', label: 'Personnel & People', icon: Users },
-    { id: 'mess', label: 'Mess & Dining', icon: Utensils, disabled: true, tag: 'Phase 2' },
+    { id: 'mess', label: 'Mess & Dining', icon: Utensils, disabled: false },
     { id: 'inventory', label: 'Inventory', icon: Package, disabled: true, tag: 'Phase 2' },
-    { id: 'financials', label: 'Financials', icon: CreditCard, disabled: true, tag: 'Phase 2' },
+    { id: 'financials', label: 'Financials', icon: CreditCard, disabled: false },
   ];
 
   return (

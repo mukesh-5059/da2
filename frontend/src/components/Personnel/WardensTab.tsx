@@ -115,7 +115,7 @@ export const WardensTab: React.FC<WardensTabProps> = ({
                     Managed Hostel Facilities:
                   </div>
                   {assignedHostels.length === 0 ? (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', italic: 'true' }}>No hostel assigned</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>No hostel assigned</span>
                   ) : (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {assignedHostels.map((h) => (

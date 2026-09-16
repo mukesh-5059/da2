@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useDeferredValue, useMemo } from 'react';
 import { api } from './services/api';
-import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Staff } from './types';
+import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { RoomTypesTab } from './components/Accommodation/RoomTypesTab';
@@ -8,6 +8,9 @@ import { RoomsTab } from './components/Accommodation/RoomsTab';
 import { AllocationsTab } from './components/Accommodation/AllocationsTab';
 import { RoomDrawer } from './components/Accommodation/RoomDrawer';
 import { PersonnelTab } from './components/Personnel/PersonnelTab';
+import { StudentProfileModal } from './components/Personnel/StudentProfileModal';
+import { MessTab } from './components/Mess/MessTab';
+import { FinancialsTab } from './components/Financials/FinancialsTab';
 import { Bed, Layers, CheckSquare, AlertCircle, Building2 } from 'lucide-react';
 import './styles/index.css';
 
@@ -19,6 +22,7 @@ export const App: React.FC = () => {
   const [rawSearchQuery, setRawSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(rawSearchQuery);
 
+  // Accommodations & Personnel
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -27,7 +31,19 @@ export const App: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
 
+  // Mess domain state
+  const [messes, setMesses] = useState<Mess[]>([]);
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [schedules, setSchedules] = useState<MessSchedule[]>([]);
+  const [messEnrollments, setMessEnrollments] = useState<MessEnrollment[]>([]);
+
+  // Financials domain state
+  const [bills, setBills] = useState<MonthlyBill[]>([]);
+  const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+
+  // Modals & Drawers state
   const [selectedRoomDrawer, setSelectedRoomDrawer] = useState<Room | null>(null);
+  const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<Student | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,6 +56,15 @@ export const App: React.FC = () => {
   const showError = (err: string) => {
     setErrorMessage(err);
     setTimeout(() => setErrorMessage(null), 4000);
+  };
+
+  const handleSelectStudentById = (studentId: string) => {
+    const s = students.find((st) => (st.StudentID || (st as any).student_id) === studentId);
+    if (s) {
+      setSelectedStudentForProfile(s);
+    } else {
+      setSelectedStudentForProfile({ StudentID: studentId, FirstName: studentId, LastName: '' });
+    }
   };
 
   // 1. Initial Metadata Load (Hostels, Wardens, RoomTypes)
@@ -68,7 +93,6 @@ export const App: React.FC = () => {
     try {
       if (activeNavTab === 'accommodations') {
         if (subTab === 'rooms') {
-          // If viewing specific hostel, fetch only that hostel's rooms!
           const rList = await api.getRooms(selectedHostelId);
           setRooms(rList);
         } else if (subTab === 'allocations') {
@@ -80,6 +104,28 @@ export const App: React.FC = () => {
         const [sList, stList] = await Promise.all([api.getStudents(), api.getStaff()]);
         setStudents(sList);
         setStaff(stList);
+      } else if (activeNavTab === 'mess') {
+        const [mList, mlList, schList, enrList, sList] = await Promise.all([
+          api.getMesses(),
+          api.getMeals(),
+          api.getMessSchedules(),
+          api.getMessEnrollments(),
+          api.getStudents(),
+        ]);
+        setMesses(mList);
+        setMeals(mlList);
+        setSchedules(schList);
+        setMessEnrollments(enrList);
+        setStudents(sList);
+      } else if (activeNavTab === 'financials') {
+        const [bList, tList, sList] = await Promise.all([
+          api.getMonthlyBills(),
+          api.getPaymentTransactions(),
+          api.getStudents(),
+        ]);
+        setBills(bList);
+        setTransactions(tList);
+        setStudents(sList);
       }
     } catch (err: any) {
       showError(err.message || 'Failed to load tab data');
@@ -279,7 +325,148 @@ export const App: React.FC = () => {
     }
   };
 
-  // Efficient Deferred Search Filters (Zero UI Lag)
+  // CRUD Handlers for Mess
+  const handleSaveMess = async (data: Partial<Mess>, isEdit: boolean) => {
+    try {
+      const id = data.MessID || (data as any).mess_id;
+      if (isEdit && id) {
+        await api.updateMess(id, data);
+        showToast(`Mess facility updated.`);
+      } else {
+        await api.createMess(data);
+        showToast(`Mess facility created.`);
+      }
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteMess = async (id: string) => {
+    if (!window.confirm(`Delete Mess facility ID ${id}?`)) return;
+    try {
+      await api.deleteMess(id);
+      showToast(`Mess facility deleted.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleSaveMeal = async (data: Partial<Meal>, isEdit: boolean) => {
+    try {
+      const id = data.MealID || (data as any).meal_id;
+      if (isEdit && id) {
+        await api.updateMeal(id, data);
+        showToast(`Meal item updated.`);
+      } else {
+        await api.createMeal(data);
+        showToast(`Meal item added to catalog.`);
+      }
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteMeal = async (id: string) => {
+    if (!window.confirm(`Delete meal offering ID ${id}?`)) return;
+    try {
+      await api.deleteMeal(id);
+      showToast(`Meal offering deleted.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleSaveMessSchedule = async (data: Partial<MessSchedule>) => {
+    try {
+      await api.createMessSchedule(data);
+      showToast(`Added schedule item.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteMessSchedule = async (id: string) => {
+    try {
+      await api.deleteMessSchedule(id);
+      showToast(`Removed schedule item.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleSaveMessEnrollment = async (data: Partial<MessEnrollment>) => {
+    try {
+      await api.createMessEnrollment(data);
+      showToast(`Enrolled student into mess.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteMessEnrollment = async (id: string) => {
+    if (!window.confirm(`Cancel mess enrollment ID ${id}?`)) return;
+    try {
+      await api.deleteMessEnrollment(id);
+      showToast(`Mess enrollment cancelled.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  // CRUD Handlers for Financials
+  const handleSaveBill = async (data: Partial<MonthlyBill>) => {
+    try {
+      await api.createMonthlyBill(data);
+      showToast(`Generated monthly bill successfully.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleUpdateBillStatus = async (billId: string, status: 'PAID' | 'PENDING' | 'OVERDUE') => {
+    try {
+      const existing = bills.find((b) => (b.BillID || (b as any).bill_id) === billId);
+      if (existing) {
+        await api.updateMonthlyBill(billId, { ...existing, PaymentStatus: status });
+        showToast(`Updated bill ${billId} status to ${status}.`);
+        loadTabSpecificData();
+      }
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteBill = async (billId: string) => {
+    if (!window.confirm(`Delete bill ${billId}?`)) return;
+    try {
+      await api.deleteMonthlyBill(billId);
+      showToast(`Deleted bill ${billId}.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleRecordPayment = async (data: Partial<PaymentTransaction>) => {
+    try {
+      await api.createPaymentTransaction(data);
+      showToast(`Recorded payment transaction successfully.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  // Deferred Search Filters
   const filteredRooms = useMemo(() => {
     const q = deferredSearchQuery.toLowerCase().trim();
     if (!q) return rooms;
@@ -401,6 +588,7 @@ export const App: React.FC = () => {
                   rooms={rooms}
                   onAllocate={handleAllocate}
                   onCheckOut={handleCheckOut}
+                  onSelectStudent={handleSelectStudentById}
                 />
               )}
             </>
@@ -418,6 +606,39 @@ export const App: React.FC = () => {
               onDeleteWarden={handleDeleteWarden}
               onSaveStaff={handleSaveStaff}
               onDeleteStaff={handleDeleteStaff}
+              onSelectStudent={setSelectedStudentForProfile}
+            />
+          )}
+
+          {activeNavTab === 'mess' && (
+            <MessTab
+              messes={messes}
+              meals={meals}
+              schedules={schedules}
+              enrollments={messEnrollments}
+              students={students}
+              onSaveMess={handleSaveMess}
+              onDeleteMess={handleDeleteMess}
+              onSaveMeal={handleSaveMeal}
+              onDeleteMeal={handleDeleteMeal}
+              onSaveSchedule={handleSaveMessSchedule}
+              onDeleteSchedule={handleDeleteMessSchedule}
+              onSaveEnrollment={handleSaveMessEnrollment}
+              onDeleteEnrollment={handleDeleteMessEnrollment}
+              onSelectStudent={handleSelectStudentById}
+            />
+          )}
+
+          {activeNavTab === 'financials' && (
+            <FinancialsTab
+              bills={bills}
+              transactions={transactions}
+              students={students}
+              onSaveBill={handleSaveBill}
+              onUpdateBillStatus={handleUpdateBillStatus}
+              onDeleteBill={handleDeleteBill}
+              onRecordPayment={handleRecordPayment}
+              onSelectStudent={handleSelectStudentById}
             />
           )}
         </main>
@@ -428,6 +649,12 @@ export const App: React.FC = () => {
         room={selectedRoomDrawer}
         onClose={() => setSelectedRoomDrawer(null)}
         onRefreshRooms={loadTabSpecificData}
+      />
+
+      {/* 360 Student Profile Modal */}
+      <StudentProfileModal
+        student={selectedStudentForProfile}
+        onClose={() => setSelectedStudentForProfile(null)}
       />
     </div>
   );

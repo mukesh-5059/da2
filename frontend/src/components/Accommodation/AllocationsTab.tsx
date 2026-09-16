@@ -8,6 +8,7 @@ interface AllocationsTabProps {
   rooms: Room[];
   onAllocate: (data: Partial<RoomAllocation>) => Promise<void>;
   onCheckOut: (allocationId: string) => Promise<void>;
+  onSelectStudent?: (studentId: string) => void;
 }
 
 export const AllocationsTab: React.FC<AllocationsTabProps> = ({
@@ -16,6 +17,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
   rooms,
   onAllocate,
   onCheckOut,
+  onSelectStudent,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState<Partial<RoomAllocation>>({
@@ -83,7 +85,25 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                   <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{alloc.AllocationID}</td>
                   <td>
                     <div>
-                      <div style={{ fontWeight: 600 }}>{alloc.StudentName || alloc.StudentID}</div>
+                      {onSelectStudent ? (
+                        <button
+                          onClick={() => onSelectStudent(alloc.StudentID || (alloc as any).student_id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--accent-primary)',
+                            fontWeight: 600,
+                            padding: 0,
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            textDecoration: 'underline',
+                          }}
+                        >
+                          {alloc.StudentName || alloc.StudentID}
+                        </button>
+                      ) : (
+                        <div style={{ fontWeight: 600 }}>{alloc.StudentName || alloc.StudentID}</div>
+                      )}
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{alloc.Department || alloc.Email}</div>
                     </div>
                   </td>
