@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Student, Guardian } from '../../types';
-import { Plus, Edit2, Trash2, User, Phone, Mail, GraduationCap, Heart, Shield } from 'lucide-react';
+import { Student } from '../../types';
+import { Plus, Edit2, Trash2, Phone, Mail, GraduationCap, Heart, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface StudentsTabProps {
   students: Student[];
@@ -17,6 +17,9 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Partial<Student> | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
 
   const [formData, setFormData] = useState<Partial<Student>>({
     StudentID: '',
@@ -35,7 +38,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
   const handleOpenAdd = () => {
     setEditingStudent(null);
     setFormData({
-      StudentID: `S-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      StudentID: `STD_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
       FirstName: '',
       LastName: '',
       Gender: 'Male',
@@ -52,7 +55,19 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
 
   const handleOpenEdit = (s: Student) => {
     setEditingStudent(s);
-    setFormData(s);
+    setFormData({
+      StudentID: s.StudentID || (s as any).student_id,
+      FirstName: s.FirstName || (s as any).name || (s as any).FirstName || '',
+      LastName: s.LastName || '',
+      Gender: s.Gender || (s as any).gender || 'Male',
+      DOB: s.DOB || (s as any).dob || '',
+      Email: s.Email || (s as any).email || '',
+      Phone: s.Phone || (s as any).phone || '',
+      BloodGroup: s.BloodGroup || (s as any).blood_group || 'O+',
+      Department: s.Department || (s as any).department || 'CSE',
+      AdmissionDate: s.AdmissionDate || (s as any).admission_date || '',
+      IsActive: s.IsActive !== undefined ? s.IsActive : 1,
+    });
     setShowModal(true);
   };
 
@@ -61,6 +76,10 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
     await onSaveStudent(formData, !!editingStudent);
     setShowModal(false);
   };
+
+  // Pagination calculations
+  const totalPages = Math.ceil(students.length / pageSize) || 1;
+  const paginatedStudents = students.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
@@ -93,72 +112,112 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
             </tr>
           </thead>
           <tbody>
-            {students.map((student) => (
-              <tr key={student.StudentID}>
-                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                  {student.StudentID}
-                </td>
-                <td>
-                  <div style={{ fontWeight: 600 }}>{student.FirstName} {student.LastName}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Admitted: {student.AdmissionDate}</div>
-                </td>
-                <td>
-                  <div>{student.Gender || 'N/A'}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.DOB}</div>
-                </td>
-                <td>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <GraduationCap size={14} style={{ color: 'var(--accent-primary)' }} />
-                    {student.Department || 'Engineering'}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Mail size={12} /> {student.Email}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
-                    <Phone size={12} /> {student.Phone}
-                  </div>
-                </td>
-                <td>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                    <Heart size={12} /> {student.BloodGroup || 'O+'}
-                  </span>
-                </td>
-                <td>
-                  <span className={`badge ${student.IsActive !== 0 ? 'badge-vacant' : 'badge-maint'}`}>
-                    {student.IsActive !== 0 ? 'Active Resident' : 'Inactive'}
-                  </span>
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'inline-flex', gap: '6px' }}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      onClick={() => onViewGuardians(student)}
-                    >
-                      <Shield size={13} /> Guardian
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      onClick={() => handleOpenEdit(student)}
-                    >
-                      <Edit2 size={13} />
-                    </button>
-                    <button
-                      className="btn btn-danger"
-                      style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                      onClick={() => onDeleteStudent(student.StudentID)}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {paginatedStudents.map((student) => {
+              const sId = student.StudentID || (student as any).student_id;
+              const fName = student.FirstName || (student as any).name || (student as any).FirstName || '';
+              const lName = student.LastName || '';
+              const gender = student.Gender || (student as any).gender || 'M';
+              const dob = student.DOB || (student as any).dob || 'N/A';
+              const dept = student.Department || (student as any).department || 'CSE';
+              const email = student.Email || (student as any).email;
+              const phone = student.Phone || (student as any).phone;
+              const bg = student.BloodGroup || (student as any).blood_group || 'O+';
+              const admDate = student.AdmissionDate || (student as any).admission_date;
+
+              return (
+                <tr key={sId}>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                    {sId}
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>{fName} {lName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Admitted: {admDate || 'N/A'}</div>
+                  </td>
+                  <td>
+                    <div>{gender === 'M' || gender === 'Male' ? 'Male' : 'Female'}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{dob}</div>
+                  </td>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <GraduationCap size={14} style={{ color: 'var(--accent-primary)' }} />
+                      {dept}
+                    </span>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Mail size={12} /> {email}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
+                      <Phone size={12} /> {phone}
+                    </div>
+                  </td>
+                  <td>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                      <Heart size={12} /> {bg}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`badge ${student.IsActive !== 0 ? 'badge-vacant' : 'badge-maint'}`}>
+                      {student.IsActive !== 0 ? 'Active Resident' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: '6px' }}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        onClick={() => onViewGuardians(student)}
+                      >
+                        <Shield size={13} /> Guardian
+                      </button>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        onClick={() => handleOpenEdit(student)}
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                      <button
+                        className="btn btn-danger"
+                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        onClick={() => onDeleteStudent(sId)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Showing page {currentPage} of {totalPages} ({students.length} total students)
+            </span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft size={14} /> Previous
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && (
@@ -174,8 +233,8 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                 <input
                   type="text"
                   className="form-input"
-                  value={formData.StudentID || ''}
-                  onChange={(e) => setFormData({ ...formData, StudentID: e.target.value })}
+                  value={formData.StudentID || (formData as any).student_id || ''}
+                  onChange={(e) => setFormData({ ...formData, StudentID: e.target.value, student_id: e.target.value } as any)}
                   disabled={!!editingStudent}
                   required
                 />
@@ -187,8 +246,8 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                   <input
                     type="text"
                     className="form-input"
-                    value={formData.FirstName || ''}
-                    onChange={(e) => setFormData({ ...formData, FirstName: e.target.value })}
+                    value={formData.FirstName || (formData as any).name || ''}
+                    onChange={(e) => setFormData({ ...formData, FirstName: e.target.value, name: e.target.value } as any)}
                     required
                   />
                 </div>
@@ -200,7 +259,6 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                     className="form-input"
                     value={formData.LastName || ''}
                     onChange={(e) => setFormData({ ...formData, LastName: e.target.value })}
-                    required
                   />
                 </div>
               </div>
@@ -210,12 +268,11 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                   <label>Gender</label>
                   <select
                     className="form-select"
-                    value={formData.Gender || 'Male'}
-                    onChange={(e) => setFormData({ ...formData, Gender: e.target.value })}
+                    value={formData.Gender || (formData as any).gender || 'M'}
+                    onChange={(e) => setFormData({ ...formData, Gender: e.target.value, gender: e.target.value } as any)}
                   >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
+                    <option value="M">Male (M)</option>
+                    <option value="F">Female (F)</option>
                   </select>
                 </div>
 
@@ -224,8 +281,8 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                   <input
                     type="date"
                     className="form-input"
-                    value={formData.DOB || ''}
-                    onChange={(e) => setFormData({ ...formData, DOB: e.target.value })}
+                    value={formData.DOB || (formData as any).dob || ''}
+                    onChange={(e) => setFormData({ ...formData, DOB: e.target.value, dob: e.target.value } as any)}
                   />
                 </div>
               </div>
@@ -236,8 +293,8 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                   <input
                     type="email"
                     className="form-input"
-                    value={formData.Email || ''}
-                    onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
+                    value={formData.Email || (formData as any).email || ''}
+                    onChange={(e) => setFormData({ ...formData, Email: e.target.value, email: e.target.value } as any)}
                     required
                   />
                 </div>
@@ -247,8 +304,8 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                   <input
                     type="text"
                     className="form-input"
-                    value={formData.Phone || ''}
-                    onChange={(e) => setFormData({ ...formData, Phone: e.target.value })}
+                    value={formData.Phone || (formData as any).phone || ''}
+                    onChange={(e) => setFormData({ ...formData, Phone: e.target.value, phone: e.target.value } as any)}
                     required
                   />
                 </div>
@@ -260,8 +317,8 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                   <input
                     type="text"
                     className="form-input"
-                    value={formData.Department || ''}
-                    onChange={(e) => setFormData({ ...formData, Department: e.target.value })}
+                    value={formData.Department || (formData as any).department || ''}
+                    onChange={(e) => setFormData({ ...formData, Department: e.target.value, department: e.target.value } as any)}
                     placeholder="e.g. Computer Science"
                   />
                 </div>
@@ -270,8 +327,8 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                   <label>Blood Group</label>
                   <select
                     className="form-select"
-                    value={formData.BloodGroup || 'O+'}
-                    onChange={(e) => setFormData({ ...formData, BloodGroup: e.target.value })}
+                    value={formData.BloodGroup || (formData as any).blood_group || 'O+'}
+                    onChange={(e) => setFormData({ ...formData, BloodGroup: e.target.value, blood_group: e.target.value } as any)}
                   >
                     {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
                       <option key={bg} value={bg}>{bg}</option>

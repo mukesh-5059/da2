@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useDeferredValue, useMemo } from 'react';
 import { api } from './services/api';
 import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Staff } from './types';
 import { Sidebar } from './components/Sidebar';
@@ -16,7 +16,8 @@ export const App: React.FC = () => {
   const [subTab, setSubTab] = useState<'rooms' | 'roomTypes' | 'allocations'>('rooms');
 
   const [selectedHostelId, setSelectedHostelId] = useState('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [rawSearchQuery, setRawSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(rawSearchQuery);
 
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -29,6 +30,7 @@ export const App: React.FC = () => {
   const [selectedRoomDrawer, setSelectedRoomDrawer] = useState<Room | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -40,44 +42,68 @@ export const App: React.FC = () => {
     setTimeout(() => setErrorMessage(null), 4000);
   };
 
-  const loadData = async () => {
+  // 1. Initial Metadata Load (Hostels, Wardens, RoomTypes)
+  const loadBaseMetadata = async () => {
     try {
-      const [hList, rtList, rList, aList, wList, sList, stList] = await Promise.all([
+      const [hList, rtList, wList] = await Promise.all([
         api.getHostels(),
         api.getRoomTypes(),
-        api.getRooms(selectedHostelId),
-        api.getAllocations(),
         api.getWardens(),
-        api.getStudents(),
-        api.getStaff(),
       ]);
       setHostels(hList);
       setRoomTypes(rtList);
-      setRooms(rList);
-      setAllocations(aList);
       setWardens(wList);
-      setStudents(sList);
-      setStaff(stList);
     } catch (err: any) {
       showError(err.message || 'Failed to connect to backend REST API');
     }
   };
 
   useEffect(() => {
-    loadData();
-  }, [selectedHostelId]);
+    loadBaseMetadata();
+  }, []);
+
+  // 2. Scoped Data Loading based on active tab & hostel selection
+  const loadTabSpecificData = async () => {
+    setLoading(true);
+    try {
+      if (activeNavTab === 'accommodations') {
+        if (subTab === 'rooms') {
+          // If viewing specific hostel, fetch only that hostel's rooms!
+          const rList = await api.getRooms(selectedHostelId);
+          setRooms(rList);
+        } else if (subTab === 'allocations') {
+          const [aList, sList] = await Promise.all([api.getAllocations(), api.getStudents()]);
+          setAllocations(aList);
+          setStudents(sList);
+        }
+      } else if (activeNavTab === 'personnel') {
+        const [sList, stList] = await Promise.all([api.getStudents(), api.getStaff()]);
+        setStudents(sList);
+        setStaff(stList);
+      }
+    } catch (err: any) {
+      showError(err.message || 'Failed to load tab data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTabSpecificData();
+  }, [activeNavTab, subTab, selectedHostelId]);
 
   // CRUD Handlers for Hostels
   const handleSaveHostel = async (data: Partial<Hostel>, isEdit: boolean) => {
     try {
-      if (isEdit && data.HostelID) {
-        await api.updateHostel(data.HostelID, data);
-        showToast(`Hostel ${data.HostelName} updated successfully.`);
+      if (isEdit && (data.HostelID || (data as any).hostel_id)) {
+        const id = data.HostelID || (data as any).hostel_id;
+        await api.updateHostel(id, data);
+        showToast(`Hostel updated successfully.`);
       } else {
         await api.createHostel(data);
-        showToast(`Hostel ${data.HostelName} created successfully.`);
+        showToast(`Hostel created successfully.`);
       }
-      loadData();
+      loadBaseMetadata();
     } catch (err: any) {
       showError(err.message);
     }
@@ -88,7 +114,7 @@ export const App: React.FC = () => {
     try {
       await api.deleteHostel(id);
       showToast(`Hostel ${id} deleted.`);
-      loadData();
+      loadBaseMetadata();
     } catch (err: any) {
       showError(err.message);
     }
@@ -104,7 +130,7 @@ export const App: React.FC = () => {
         await api.createRoomType(data);
         showToast(`Room Type ${data.Type} created.`);
       }
-      loadData();
+      loadBaseMetadata();
     } catch (err: any) {
       showError(err.message);
     }
@@ -115,7 +141,7 @@ export const App: React.FC = () => {
     try {
       await api.deleteRoomType(type);
       showToast(`Room Type ${type} deleted.`);
-      loadData();
+      loadBaseMetadata();
     } catch (err: any) {
       showError(err.message);
     }
@@ -131,7 +157,7 @@ export const App: React.FC = () => {
         await api.createRoom(data);
         showToast(`Room ${data.RoomNo} created.`);
       }
-      loadData();
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
@@ -142,7 +168,7 @@ export const App: React.FC = () => {
     try {
       await api.deleteRoom(roomNo);
       showToast(`Room ${roomNo} deleted.`);
-      loadData();
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
@@ -152,8 +178,8 @@ export const App: React.FC = () => {
   const handleAllocate = async (data: Partial<RoomAllocation>) => {
     try {
       await api.createAllocation(data);
-      showToast(`Allocated Room ${data.RoomNo} to student ${data.StudentID}.`);
-      loadData();
+      showToast(`Allocated Room successfully.`);
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
@@ -165,7 +191,7 @@ export const App: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       await api.updateAllocation(allocId, { CheckOutDate: today });
       showToast(`Resident checked out successfully.`);
-      loadData();
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
@@ -174,14 +200,15 @@ export const App: React.FC = () => {
   // CRUD Handlers for Personnel
   const handleSaveStudent = async (data: Partial<Student>, isEdit: boolean) => {
     try {
-      if (isEdit && data.StudentID) {
-        await api.updateStudent(data.StudentID, data);
-        showToast(`Student ${data.FirstName} ${data.LastName} updated.`);
+      const id = data.StudentID || (data as any).student_id;
+      if (isEdit && id) {
+        await api.updateStudent(id, data);
+        showToast(`Student updated.`);
       } else {
         await api.createStudent(data);
-        showToast(`Student ${data.FirstName} ${data.LastName} registered.`);
+        showToast(`Student registered.`);
       }
-      loadData();
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
@@ -192,7 +219,7 @@ export const App: React.FC = () => {
     try {
       await api.deleteStudent(id);
       showToast(`Student ${id} deleted.`);
-      loadData();
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
@@ -200,14 +227,15 @@ export const App: React.FC = () => {
 
   const handleSaveWarden = async (data: Partial<Warden>, isEdit: boolean) => {
     try {
-      if (isEdit && data.WardenID) {
-        await api.updateWarden(data.WardenID, data);
-        showToast(`Warden ${data.FirstName} ${data.LastName} updated.`);
+      const id = data.WardenID || (data as any).warden_id;
+      if (isEdit && id) {
+        await api.updateWarden(id, data);
+        showToast(`Warden updated.`);
       } else {
         await api.createWarden(data);
-        showToast(`Warden ${data.FirstName} ${data.LastName} created.`);
+        showToast(`Warden created.`);
       }
-      loadData();
+      loadBaseMetadata();
     } catch (err: any) {
       showError(err.message);
     }
@@ -218,7 +246,7 @@ export const App: React.FC = () => {
     try {
       await api.deleteWarden(id);
       showToast(`Warden ${id} deleted.`);
-      loadData();
+      loadBaseMetadata();
     } catch (err: any) {
       showError(err.message);
     }
@@ -226,14 +254,15 @@ export const App: React.FC = () => {
 
   const handleSaveStaff = async (data: Partial<Staff>, isEdit: boolean) => {
     try {
-      if (isEdit && data.StaffID) {
-        await api.updateStaff(data.StaffID, data);
-        showToast(`Staff member ${data.FirstName} ${data.LastName} updated.`);
+      const id = data.StaffID || (data as any).staff_id;
+      if (isEdit && id) {
+        await api.updateStaff(id, data);
+        showToast(`Staff member updated.`);
       } else {
         await api.createStaff(data);
-        showToast(`Staff member ${data.FirstName} ${data.LastName} added.`);
+        showToast(`Staff member added.`);
       }
-      loadData();
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
@@ -244,34 +273,46 @@ export const App: React.FC = () => {
     try {
       await api.deleteStaff(id);
       showToast(`Staff member ${id} deleted.`);
-      loadData();
+      loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
     }
   };
 
-  // Search filter
-  const filteredRooms = rooms.filter((r) => {
-    const q = searchQuery.toLowerCase();
-    if (!q) return true;
-    return (
-      r.RoomNo.toLowerCase().includes(q) ||
-      (r.HostelName && r.HostelName.toLowerCase().includes(q)) ||
-      r.Type.toLowerCase().includes(q) ||
-      r.Status.toLowerCase().includes(q)
-    );
-  });
+  // Efficient Deferred Search Filters (Zero UI Lag)
+  const filteredRooms = useMemo(() => {
+    const q = deferredSearchQuery.toLowerCase().trim();
+    if (!q) return rooms;
+    return rooms.filter((r) => {
+      const rNo = r.RoomNo || (r as any).room_no || '';
+      const hName = r.HostelName || (r as any).hostel_name || '';
+      const rType = r.Type || (r as any).type_name || '';
+      const rStatus = r.Status || (r as any).status || '';
+      return (
+        rNo.toLowerCase().includes(q) ||
+        hName.toLowerCase().includes(q) ||
+        rType.toLowerCase().includes(q) ||
+        rStatus.toLowerCase().includes(q)
+      );
+    });
+  }, [rooms, deferredSearchQuery]);
 
-  const filteredStudents = students.filter((s) => {
-    const q = searchQuery.toLowerCase();
-    if (!q) return true;
-    return (
-      s.StudentID.toLowerCase().includes(q) ||
-      s.FirstName.toLowerCase().includes(q) ||
-      s.LastName.toLowerCase().includes(q) ||
-      (s.Department && s.Department.toLowerCase().includes(q))
-    );
-  });
+  const filteredStudents = useMemo(() => {
+    const q = deferredSearchQuery.toLowerCase().trim();
+    if (!q) return students;
+    return students.filter((s) => {
+      const sId = s.StudentID || (s as any).student_id || '';
+      const fName = s.FirstName || (s as any).name || '';
+      const lName = s.LastName || '';
+      const dept = s.Department || (s as any).department || '';
+      return (
+        sId.toLowerCase().includes(q) ||
+        fName.toLowerCase().includes(q) ||
+        lName.toLowerCase().includes(q) ||
+        dept.toLowerCase().includes(q)
+      );
+    });
+  }, [students, deferredSearchQuery]);
 
   return (
     <div className="app-container">
@@ -282,8 +323,8 @@ export const App: React.FC = () => {
           hostels={hostels}
           selectedHostelId={selectedHostelId}
           onSelectHostel={setSelectedHostelId}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchQuery={rawSearchQuery}
+          onSearchChange={setRawSearchQuery}
         />
 
         <main className="page-body">
@@ -302,7 +343,7 @@ export const App: React.FC = () => {
 
           {activeNavTab === 'accommodations' && (
             <>
-              {/* Combined Clean Sub Navigation Pills */}
+              {/* Combined Sub Navigation Pills */}
               <div className="tab-pills">
                 <button
                   className={`tab-pill ${subTab === 'rooms' ? 'active' : ''}`}
@@ -341,6 +382,7 @@ export const App: React.FC = () => {
                   onSaveHostel={handleSaveHostel}
                   onDeleteHostel={handleDeleteHostel}
                   onSelectRoomDrawer={setSelectedRoomDrawer}
+                  loading={loading}
                 />
               )}
 
@@ -385,7 +427,7 @@ export const App: React.FC = () => {
       <RoomDrawer
         room={selectedRoomDrawer}
         onClose={() => setSelectedRoomDrawer(null)}
-        onRefreshRooms={loadData}
+        onRefreshRooms={loadTabSpecificData}
       />
     </div>
   );

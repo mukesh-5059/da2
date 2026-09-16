@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Room, RoomType, Hostel, Warden } from '../../types';
-import { Plus, Edit2, Trash2, LayoutGrid, Table, Eye, Layers, ArrowLeft, Building2, MapPin, UserCheck } from 'lucide-react';
+import { Plus, Edit2, Trash2, LayoutGrid, Table, Eye, Layers, ArrowLeft, Building2, MapPin, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface RoomsTabProps {
   rooms: Room[];
@@ -14,6 +14,7 @@ interface RoomsTabProps {
   onSaveHostel: (data: Partial<Hostel>, isEdit: boolean) => Promise<void>;
   onDeleteHostel: (id: string) => Promise<void>;
   onSelectRoomDrawer: (room: Room) => void;
+  loading?: boolean;
 }
 
 export const RoomsTab: React.FC<RoomsTabProps> = ({
@@ -28,8 +29,11 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
   onSaveHostel,
   onDeleteHostel,
   onSelectRoomDrawer,
+  loading = false,
 }) => {
   const [viewMode, setViewMode] = useState<'matrix' | 'table'>('matrix');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
 
   // Room Modal State
   const [showRoomModal, setShowRoomModal] = useState(false);
@@ -39,7 +43,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
     FloorNo: 1,
     Status: 'Vacant',
     Type: roomTypes[0]?.Type || 'Single',
-    HostelID: hostels[0]?.HostelID || '',
+    HostelID: hostels[0]?.HostelID || (hostels[0] as any)?.hostel_id || '',
   });
 
   // Hostel Modal State
@@ -63,7 +67,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
       FloorNo: 1,
       Status: 'Vacant',
       Type: roomTypes[0]?.Type || 'Single',
-      HostelID: selectedHostelId !== 'ALL' ? selectedHostelId : hostels[0]?.HostelID || '',
+      HostelID: selectedHostelId !== 'ALL' ? selectedHostelId : (hostels[0]?.HostelID || (hostels[0] as any)?.hostel_id || ''),
     });
     setShowRoomModal(true);
   };
@@ -84,20 +88,28 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
   const handleOpenAddHostel = () => {
     setEditingHostel(null);
     setHostelFormData({
-      HostelID: `H-${Date.now().toString().slice(-4)}`,
+      HostelID: `HST_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
       HostelName: '',
       HostelType: 'Boys',
       TotalFloors: 4,
       TotalRooms: 40,
       Location: '',
-      WardenID: wardens[0]?.WardenID || '',
+      WardenID: wardens[0]?.WardenID || (wardens[0] as any)?.warden_id || '',
     });
     setShowHostelModal(true);
   };
 
   const handleOpenEditHostel = (hostel: Hostel) => {
     setEditingHostel(hostel);
-    setHostelFormData(hostel);
+    setHostelFormData({
+      HostelID: hostel.HostelID || (hostel as any).hostel_id,
+      HostelName: hostel.HostelName || (hostel as any).name,
+      HostelType: (hostel.HostelType || (hostel as any).gender_type === 'M' ? 'Boys' : 'Girls') as any,
+      TotalFloors: hostel.TotalFloors || 4,
+      TotalRooms: hostel.TotalRooms || (hostel as any).capacity || 40,
+      Location: hostel.Location || '',
+      WardenID: hostel.WardenID || (hostel as any).warden_id || '',
+    });
     setShowHostelModal(true);
   };
 
@@ -107,15 +119,20 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
     setShowHostelModal(false);
   };
 
-  const selectedHostelObj = hostels.find((h) => h.HostelID === selectedHostelId);
+  const selectedHostelObj = hostels.find((h) => (h.HostelID || (h as any).hostel_id) === selectedHostelId);
 
-  // Group rooms by Floor for the active hostel
+  // Group rooms by Floor for matrix
   const floorGroups = rooms.reduce((acc, room) => {
-    const floorKey = `Floor ${room.FloorNo}`;
+    const floorNo = room.FloorNo !== undefined ? room.FloorNo : (room as any).floor_no || 1;
+    const floorKey = `Floor ${floorNo}`;
     if (!acc[floorKey]) acc[floorKey] = [];
     acc[floorKey].push(room);
     return acc;
   }, {} as Record<string, Room[]>);
+
+  // Pagination for Data Grid
+  const totalPages = Math.ceil(rooms.length / pageSize) || 1;
+  const paginatedRooms = rooms.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
@@ -137,14 +154,22 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
 
           <div className="grid-cols-3">
             {hostels.map((hostel) => {
-              const hostelRooms = rooms.filter((r) => r.HostelID === hostel.HostelID);
-              const vacantCount = hostelRooms.filter((r) => r.Status === 'Vacant').length;
-              const occupiedCount = hostelRooms.filter((r) => r.Status === 'Occupied').length;
-              const maintCount = hostelRooms.filter((r) => r.Status === 'UnderMaintenance').length;
+              const hId = hostel.HostelID || (hostel as any).hostel_id;
+              const hName = hostel.HostelName || (hostel as any).name;
+              const hType = hostel.HostelType || ((hostel as any).gender_type === 'M' ? 'Boys' : 'Girls');
+              const hLocation = hostel.Location || (hostel as any).location || 'Campus Main';
+              const hWarden = hostel.WardenName || (hostel as any).warden_name || hostel.WardenID || (hostel as any).warden_id || 'Unassigned';
+              const hFloors = hostel.TotalFloors || 4;
+              const hTotalRooms = hostel.TotalRooms || (hostel as any).capacity || 40;
+
+              const hostelRooms = rooms.filter((r) => (r.HostelID || (r as any).hostel_id) === hId);
+              const vacantCount = hostelRooms.filter((r) => (r.Status || (r as any).status) === 'Vacant' || (r as any).status === 'AVAILABLE').length;
+              const occupiedCount = hostelRooms.filter((r) => (r.Status || (r as any).status) === 'Occupied' || (r as any).status === 'OCCUPIED').length;
+              const maintCount = hostelRooms.filter((r) => (r.Status || (r as any).status) === 'UnderMaintenance' || (r as any).status === 'MAINTENANCE').length;
 
               return (
                 <div
-                  key={hostel.HostelID}
+                  key={hId}
                   className="card"
                   style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '16px' }}
                 >
@@ -155,9 +180,9 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                           <Building2 size={24} style={{ color: 'var(--accent-primary)' }} />
                         </div>
                         <div>
-                          <h3 style={{ fontSize: '1.15rem', color: 'var(--text-primary)' }}>{hostel.HostelName}</h3>
+                          <h3 style={{ fontSize: '1.15rem', color: 'var(--text-primary)' }}>{hName}</h3>
                           <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                            ID: {hostel.HostelID}
+                            ID: {hId}
                           </span>
                         </div>
                       </div>
@@ -167,31 +192,31 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                           borderRadius: '12px',
                           fontSize: '0.75rem',
                           fontWeight: 700,
-                          backgroundColor: hostel.HostelType === 'Boys' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(236, 72, 153, 0.15)',
-                          color: hostel.HostelType === 'Boys' ? '#60a5fa' : '#f472b6',
-                          border: `1px solid ${hostel.HostelType === 'Boys' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
+                          backgroundColor: hType === 'Boys' || hType === 'M' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(236, 72, 153, 0.15)',
+                          color: hType === 'Boys' || hType === 'M' ? '#60a5fa' : '#f472b6',
+                          border: `1px solid ${hType === 'Boys' || hType === 'M' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
                         }}
                       >
-                        {hostel.HostelType} Hostel
+                        {hType} Hostel
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <MapPin size={16} />
-                        <span>{hostel.Location || 'Main Campus'}</span>
+                        <span>{hLocation}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <UserCheck size={16} />
-                        <span>Warden: <strong style={{ color: 'var(--text-primary)' }}>{hostel.WardenName || hostel.WardenID || 'Unassigned'}</strong></span>
+                        <span>Warden: <strong style={{ color: 'var(--text-primary)' }}>{hWarden}</strong></span>
                       </div>
                     </div>
 
                     {/* Occupancy Breakdown */}
                     <div style={{ background: 'var(--bg-surface)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '8px', fontWeight: 600 }}>
-                        <span>Occupancy Status</span>
-                        <span style={{ color: 'var(--text-primary)' }}>{hostelRooms.length} Rooms</span>
+                        <span>Capacity Standard</span>
+                        <span style={{ color: 'var(--text-primary)' }}>{hFloors} Floors • {hTotalRooms} Rooms</span>
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px', fontSize: '0.75rem' }}>
@@ -220,7 +245,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                         style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDeleteHostel(hostel.HostelID);
+                          onDeleteHostel(hId);
                         }}
                       >
                         <Trash2 size={13} />
@@ -230,7 +255,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                     <button
                       className="btn btn-primary"
                       style={{ padding: '6px 12px', fontSize: '0.8rem' }}
-                      onClick={() => onSelectHostelScope(hostel.HostelID)}
+                      onClick={() => onSelectHostelScope(hId)}
                     >
                       Inspect Matrix →
                     </button>
@@ -266,10 +291,10 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
 
               <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Building2 size={24} style={{ color: 'var(--accent-primary)' }} />
-                {selectedHostelObj?.HostelName}
+                {selectedHostelObj?.HostelName || (selectedHostelObj as any)?.name}
               </h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                {selectedHostelObj?.HostelType} Hostel • {selectedHostelObj?.TotalFloors} Floors • Warden: {selectedHostelObj?.WardenName || 'Unassigned'}
+                {selectedHostelObj?.HostelType || ((selectedHostelObj as any)?.gender_type === 'M' ? 'Boys' : 'Girls')} Hostel • Warden: {selectedHostelObj?.WardenName || (selectedHostelObj as any)?.warden_name || 'Unassigned'}
               </p>
             </div>
 
@@ -320,8 +345,11 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
             </div>
           </div>
 
-          {/* ROOM MATRIX OR DATA GRID */}
-          {viewMode === 'matrix' ? (
+          {loading ? (
+            <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+              Loading rooms from backend...
+            </div>
+          ) : viewMode === 'matrix' ? (
             <div>
               {Object.keys(floorGroups).length === 0 ? (
                 <div className="card" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
@@ -340,30 +368,37 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
 
                     <div className="matrix-grid">
                       {floorRooms.map((room) => {
-                        const statusClass = room.Status === 'Vacant' ? 'vacant' : room.Status === 'Occupied' ? 'occupied' : 'maint';
-                        const badgeClass = room.Status === 'Vacant' ? 'badge-vacant' : room.Status === 'Occupied' ? 'badge-occupied' : 'badge-maint';
+                        const rNo = room.RoomNo || (room as any).room_no;
+                        const rStatus = room.Status || (room as any).status || 'Vacant';
+                        const rType = room.Type || (room as any).type_name || 'Single';
+                        const rRent = room.RoomRent || (room as any).rent_per_month || (room as any).RoomRent || 0;
+
+                        const isVacant = rStatus === 'Vacant' || rStatus === 'AVAILABLE';
+                        const isOccupied = rStatus === 'Occupied' || rStatus === 'OCCUPIED';
+                        const statusClass = isVacant ? 'vacant' : isOccupied ? 'occupied' : 'maint';
+                        const badgeClass = isVacant ? 'badge-vacant' : isOccupied ? 'badge-occupied' : 'badge-maint';
 
                         return (
                           <div
-                            key={room.RoomNo}
+                            key={rNo}
                             className={`matrix-tile ${statusClass}`}
                             onClick={() => onSelectRoomDrawer(room)}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span className="room-no">{room.RoomNo}</span>
+                              <span className="room-no">{rNo}</span>
                               <Eye size={14} style={{ color: 'var(--text-muted)' }} />
                             </div>
 
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                              {room.Type}
+                              {rType}
                             </div>
 
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span className={`badge ${badgeClass}`} style={{ fontSize: '0.65rem', padding: '2px 6px' }}>
-                                {room.Status}
+                                {rStatus}
                               </span>
                               <span style={{ fontSize: '0.7rem', color: '#10b981', fontFamily: 'var(--font-mono)' }}>
-                                ₹{(room.RoomRent || 0) / 1000}k
+                                ₹{rRent}
                               </span>
                             </div>
                           </div>
@@ -375,6 +410,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
               )}
             </div>
           ) : (
+            /* DATA GRID VIEW WITH PAGINATION */
             <div className="data-table-container">
               <table className="data-table">
                 <thead>
@@ -383,41 +419,80 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                     <th>Floor</th>
                     <th>Room Type</th>
                     <th>Capacity</th>
-                    <th>Rent / Sem</th>
+                    <th>Rent</th>
                     <th>Status</th>
                     <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rooms.map((room) => (
-                    <tr key={room.RoomNo}>
-                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{room.RoomNo}</td>
-                      <td>Floor {room.FloorNo}</td>
-                      <td>{room.Type}</td>
-                      <td>{room.Capacity} Beds</td>
-                      <td style={{ fontFamily: 'var(--font-mono)', color: '#10b981' }}>₹{room.RoomRent?.toLocaleString('en-IN')}</td>
-                      <td>
-                        <span className={`badge ${room.Status === 'Vacant' ? 'badge-vacant' : room.Status === 'Occupied' ? 'badge-occupied' : 'badge-maint'}`}>
-                          {room.Status}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                          <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => onSelectRoomDrawer(room)}>
-                            <Eye size={14} /> Details
-                          </button>
-                          <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenEditRoom(room)}>
-                            <Edit2 size={14} />
-                          </button>
-                          <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => onDeleteRoom(room.RoomNo)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {paginatedRooms.map((room) => {
+                    const rNo = room.RoomNo || (room as any).room_no;
+                    const fNo = room.FloorNo !== undefined ? room.FloorNo : (room as any).floor_no;
+                    const rType = room.Type || (room as any).type_name;
+                    const cap = room.Capacity || (room as any).capacity || 1;
+                    const rent = room.RoomRent || (room as any).rent_per_month || (room as any).RoomRent || 0;
+                    const rStatus = room.Status || (room as any).status;
+
+                    const isVacant = rStatus === 'Vacant' || rStatus === 'AVAILABLE';
+                    const isOccupied = rStatus === 'Occupied' || rStatus === 'OCCUPIED';
+
+                    return (
+                      <tr key={rNo}>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{rNo}</td>
+                        <td>Floor {fNo}</td>
+                        <td>{rType}</td>
+                        <td>{cap} Beds</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: '#10b981' }}>₹{rent}</td>
+                        <td>
+                          <span className={`badge ${isVacant ? 'badge-vacant' : isOccupied ? 'badge-occupied' : 'badge-maint'}`}>
+                            {rStatus}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', gap: '6px' }}>
+                            <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => onSelectRoomDrawer(room)}>
+                              <Eye size={14} /> Details
+                            </button>
+                            <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenEditRoom(room)}>
+                              <Edit2 size={14} />
+                            </button>
+                            <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => onDeleteRoom(rNo)}>
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Showing page {currentPage} of {totalPages} ({rooms.length} total rooms)
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    >
+                      <ChevronLeft size={14} /> Previous
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      Next <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -433,13 +508,13 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
 
             <form onSubmit={handleSubmitRoom}>
               <div className="form-group">
-                <label>Room Number</label>
+                <label>Room Number / ID</label>
                 <input
                   type="text"
                   className="form-input"
-                  value={roomFormData.RoomNo || ''}
-                  onChange={(e) => setRoomFormData({ ...roomFormData, RoomNo: e.target.value })}
-                  placeholder="e.g. TB-101"
+                  value={roomFormData.RoomNo || (roomFormData as any).room_no || ''}
+                  onChange={(e) => setRoomFormData({ ...roomFormData, RoomNo: e.target.value, room_no: e.target.value } as any)}
+                  placeholder="e.g. A-101"
                   disabled={!!editingRoom}
                   required
                 />
@@ -450,15 +525,19 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                   <label>Hostel Facility</label>
                   <select
                     className="form-select"
-                    value={roomFormData.HostelID || ''}
-                    onChange={(e) => setRoomFormData({ ...roomFormData, HostelID: e.target.value })}
+                    value={roomFormData.HostelID || (roomFormData as any).hostel_id || ''}
+                    onChange={(e) => setRoomFormData({ ...roomFormData, HostelID: e.target.value, hostel_id: e.target.value } as any)}
                     required
                   >
-                    {hostels.map((h) => (
-                      <option key={h.HostelID} value={h.HostelID}>
-                        {h.HostelName}
-                      </option>
-                    ))}
+                    {hostels.map((h) => {
+                      const id = h.HostelID || (h as any).hostel_id;
+                      const name = h.HostelName || (h as any).name;
+                      return (
+                        <option key={id} value={id}>
+                          {name}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -467,8 +546,8 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                   <input
                     type="number"
                     className="form-input"
-                    value={roomFormData.FloorNo || 1}
-                    onChange={(e) => setRoomFormData({ ...roomFormData, FloorNo: parseInt(e.target.value) })}
+                    value={roomFormData.FloorNo !== undefined ? roomFormData.FloorNo : (roomFormData as any).floor_no || 1}
+                    onChange={(e) => setRoomFormData({ ...roomFormData, FloorNo: parseInt(e.target.value), floor_no: parseInt(e.target.value) } as any)}
                     min="0"
                     required
                   />
@@ -480,15 +559,19 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                   <label>Room Type</label>
                   <select
                     className="form-select"
-                    value={roomFormData.Type || ''}
-                    onChange={(e) => setRoomFormData({ ...roomFormData, Type: e.target.value })}
+                    value={roomFormData.Type || (roomFormData as any).type_name || ''}
+                    onChange={(e) => setRoomFormData({ ...roomFormData, Type: e.target.value, type_name: e.target.value } as any)}
                     required
                   >
-                    {roomTypes.map((rt) => (
-                      <option key={rt.Type} value={rt.Type}>
-                        {rt.Type} ({rt.Capacity} Bed)
-                      </option>
-                    ))}
+                    {roomTypes.map((rt) => {
+                      const tName = rt.Type || (rt as any).type_name;
+                      const cap = rt.Capacity || (rt as any).capacity || 1;
+                      return (
+                        <option key={tName} value={tName}>
+                          {tName} ({cap} Bed)
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -496,12 +579,12 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                   <label>Status</label>
                   <select
                     className="form-select"
-                    value={roomFormData.Status || 'Vacant'}
-                    onChange={(e) => setRoomFormData({ ...roomFormData, Status: e.target.value as 'Vacant' | 'Occupied' | 'UnderMaintenance' })}
+                    value={roomFormData.Status || (roomFormData as any).status || 'AVAILABLE'}
+                    onChange={(e) => setRoomFormData({ ...roomFormData, Status: e.target.value as any, status: e.target.value } as any)}
                   >
-                    <option value="Vacant">Vacant</option>
-                    <option value="Occupied">Occupied</option>
-                    <option value="UnderMaintenance">Under Maintenance</option>
+                    <option value="AVAILABLE">AVAILABLE (Vacant)</option>
+                    <option value="OCCUPIED">OCCUPIED</option>
+                    <option value="MAINTENANCE">MAINTENANCE</option>
                   </select>
                 </div>
               </div>
@@ -533,8 +616,8 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                 <input
                   type="text"
                   className="form-input"
-                  value={hostelFormData.HostelID || ''}
-                  onChange={(e) => setHostelFormData({ ...hostelFormData, HostelID: e.target.value })}
+                  value={hostelFormData.HostelID || (hostelFormData as any).hostel_id || ''}
+                  onChange={(e) => setHostelFormData({ ...hostelFormData, HostelID: e.target.value, hostel_id: e.target.value } as any)}
                   disabled={!!editingHostel}
                   required
                 />
@@ -545,23 +628,23 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                 <input
                   type="text"
                   className="form-input"
-                  value={hostelFormData.HostelName || ''}
-                  onChange={(e) => setHostelFormData({ ...hostelFormData, HostelName: e.target.value })}
-                  placeholder="e.g. Tagore Boys Hostel"
+                  value={hostelFormData.HostelName || (hostelFormData as any).name || ''}
+                  onChange={(e) => setHostelFormData({ ...hostelFormData, HostelName: e.target.value, name: e.target.value } as any)}
+                  placeholder="e.g. Block A"
                   required
                 />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
-                  <label>Hostel Type</label>
+                  <label>Gender / Type</label>
                   <select
                     className="form-select"
-                    value={hostelFormData.HostelType || 'Boys'}
-                    onChange={(e) => setHostelFormData({ ...hostelFormData, HostelType: e.target.value as 'Boys' | 'Girls' })}
+                    value={hostelFormData.HostelType || (hostelFormData as any).gender_type || 'M'}
+                    onChange={(e) => setHostelFormData({ ...hostelFormData, HostelType: e.target.value as any, gender_type: e.target.value } as any)}
                   >
-                    <option value="Boys">Boys</option>
-                    <option value="Girls">Girls</option>
+                    <option value="Boys">Boys (M)</option>
+                    <option value="Girls">Girls (F)</option>
                   </select>
                 </div>
 
@@ -569,15 +652,19 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                   <label>Assigned Warden</label>
                   <select
                     className="form-select"
-                    value={hostelFormData.WardenID || ''}
-                    onChange={(e) => setHostelFormData({ ...hostelFormData, WardenID: e.target.value })}
+                    value={hostelFormData.WardenID || (hostelFormData as any).warden_id || ''}
+                    onChange={(e) => setHostelFormData({ ...hostelFormData, WardenID: e.target.value, warden_id: e.target.value } as any)}
                   >
                     <option value="">-- Select Warden --</option>
-                    {wardens.map((w) => (
-                      <option key={w.WardenID} value={w.WardenID}>
-                        {w.FirstName} {w.LastName} ({w.Designation})
-                      </option>
-                    ))}
+                    {wardens.map((w) => {
+                      const wId = w.WardenID || (w as any).warden_id;
+                      const wName = w.FirstName ? `${w.FirstName} ${w.LastName}` : (w as any).name;
+                      return (
+                        <option key={wId} value={wId}>
+                          {wName} ({wId})
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -588,7 +675,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                   <input
                     type="number"
                     className="form-input"
-                    value={hostelFormData.TotalFloors || 1}
+                    value={hostelFormData.TotalFloors || 4}
                     onChange={(e) => setHostelFormData({ ...hostelFormData, TotalFloors: parseInt(e.target.value) })}
                     min="1"
                     required
@@ -596,12 +683,12 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                 </div>
 
                 <div className="form-group">
-                  <label>Total Rooms</label>
+                  <label>Capacity / Total Rooms</label>
                   <input
                     type="number"
                     className="form-input"
-                    value={hostelFormData.TotalRooms || 1}
-                    onChange={(e) => setHostelFormData({ ...hostelFormData, TotalRooms: parseInt(e.target.value) })}
+                    value={hostelFormData.TotalRooms || (hostelFormData as any).capacity || 40}
+                    onChange={(e) => setHostelFormData({ ...hostelFormData, TotalRooms: parseInt(e.target.value), capacity: parseInt(e.target.value) } as any)}
                     min="1"
                     required
                   />
@@ -613,9 +700,9 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                 <input
                   type="text"
                   className="form-input"
-                  value={hostelFormData.Location || ''}
-                  onChange={(e) => setHostelFormData({ ...hostelFormData, Location: e.target.value })}
-                  placeholder="e.g. North Campus Block A"
+                  value={hostelFormData.Location || (hostelFormData as any).location || ''}
+                  onChange={(e) => setHostelFormData({ ...hostelFormData, Location: e.target.value, location: e.target.value } as any)}
+                  placeholder="e.g. North Campus"
                 />
               </div>
 
