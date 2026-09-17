@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useDeferredValue, useMemo } from 'react';
 import { api } from './services/api';
-import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction } from './types';
+import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction, Supplier, InventoryItem, InventoryStock, ProcurementEvent } from './types';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { RoomTypesTab } from './components/Accommodation/RoomTypesTab';
@@ -11,6 +11,7 @@ import { PersonnelTab } from './components/Personnel/PersonnelTab';
 import { StudentProfileModal } from './components/Personnel/StudentProfileModal';
 import { MessTab } from './components/Mess/MessTab';
 import { FinancialsTab } from './components/Financials/FinancialsTab';
+import { InventoryTab } from './components/Inventory/InventoryTab';
 import { Bed, Layers, CheckSquare, AlertCircle, Building2 } from 'lucide-react';
 import './styles/index.css';
 
@@ -40,6 +41,12 @@ export const App: React.FC = () => {
   // Financials domain state
   const [bills, setBills] = useState<MonthlyBill[]>([]);
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
+
+  // Inventory domain state
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [inventoryStock, setInventoryStock] = useState<InventoryStock[]>([]);
+  const [procurementEvents, setProcurementEvents] = useState<ProcurementEvent[]>([]);
 
   // Modals & Drawers state
   const [selectedRoomDrawer, setSelectedRoomDrawer] = useState<Room | null>(null);
@@ -117,6 +124,19 @@ export const App: React.FC = () => {
         setSchedules(schList);
         setMessEnrollments(enrList);
         setStudents(sList);
+      } else if (activeNavTab === 'inventory') {
+        const [supList, itmList, stkList, procList, mList] = await Promise.all([
+          api.getSuppliers(),
+          api.getInventoryItems(),
+          api.getInventoryStock(),
+          api.getProcurementEvents(),
+          api.getMesses(),
+        ]);
+        setSuppliers(supList);
+        setInventoryItems(itmList);
+        setInventoryStock(stkList);
+        setProcurementEvents(procList);
+        setMesses(mList);
       } else if (activeNavTab === 'financials') {
         const [bList, tList, sList] = await Promise.all([
           api.getMonthlyBills(),
@@ -466,6 +486,109 @@ export const App: React.FC = () => {
     }
   };
 
+  // CRUD Handlers for Inventory
+  const handleSaveSupplier = async (data: Partial<Supplier>, isEdit: boolean) => {
+    try {
+      const id = data.SupplierID;
+      if (isEdit && id) {
+        await api.updateSupplier(id, data);
+        showToast(`Supplier updated successfully.`);
+      } else {
+        await api.createSupplier(data);
+        showToast(`Supplier registered successfully.`);
+      }
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteSupplier = async (id: string) => {
+    if (!window.confirm(`Delete supplier ID ${id}?`)) return;
+    try {
+      await api.deleteSupplier(id);
+      showToast(`Supplier ${id} deleted.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleSaveInventoryItem = async (data: Partial<InventoryItem>, isEdit: boolean) => {
+    try {
+      const id = data.ItemID;
+      if (isEdit && id) {
+        await api.updateInventoryItem(id, data);
+        showToast(`Inventory item updated.`);
+      } else {
+        await api.createInventoryItem(data);
+        showToast(`Inventory item added.`);
+      }
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteInventoryItem = async (id: string) => {
+    if (!window.confirm(`Delete item ID ${id}?`)) return;
+    try {
+      await api.deleteInventoryItem(id);
+      showToast(`Item ${id} deleted.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleSaveInventoryStock = async (data: Partial<InventoryStock>) => {
+    try {
+      await api.upsertInventoryStock(data);
+      showToast(`Stock level updated.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteInventoryStock = async (messId: string, itemId: string) => {
+    if (!window.confirm(`Delete stock entry?`)) return;
+    try {
+      await api.deleteInventoryStock(messId, itemId);
+      showToast(`Stock entry removed.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleSaveProcurementEvent = async (data: Partial<ProcurementEvent>, isEdit: boolean) => {
+    try {
+      const id = data.PurchaseID;
+      if (isEdit && id) {
+        await api.updateProcurementEvent(id, data);
+        showToast(`Procurement record updated.`);
+      } else {
+        await api.createProcurementEvent(data);
+        showToast(`Procurement record created.`);
+      }
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteProcurementEvent = async (id: string) => {
+    if (!window.confirm(`Delete procurement record ${id}?`)) return;
+    try {
+      await api.deleteProcurementEvent(id);
+      showToast(`Procurement record deleted.`);
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
   // Deferred Search Filters
   const filteredRooms = useMemo(() => {
     const q = deferredSearchQuery.toLowerCase().trim();
@@ -626,6 +749,24 @@ export const App: React.FC = () => {
               onSaveEnrollment={handleSaveMessEnrollment}
               onDeleteEnrollment={handleDeleteMessEnrollment}
               onSelectStudent={handleSelectStudentById}
+            />
+          )}
+
+          {activeNavTab === 'inventory' && (
+            <InventoryTab
+              messes={messes}
+              suppliers={suppliers}
+              inventoryItems={inventoryItems}
+              inventoryStock={inventoryStock}
+              procurementEvents={procurementEvents}
+              onSaveSupplier={handleSaveSupplier}
+              onDeleteSupplier={handleDeleteSupplier}
+              onSaveInventoryItem={handleSaveInventoryItem}
+              onDeleteInventoryItem={handleDeleteInventoryItem}
+              onSaveStock={handleSaveInventoryStock}
+              onDeleteStock={handleDeleteInventoryStock}
+              onSaveProcurement={handleSaveProcurementEvent}
+              onDeleteProcurement={handleDeleteProcurementEvent}
             />
           )}
 

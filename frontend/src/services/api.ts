@@ -1,4 +1,4 @@
-import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Guardian, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction } from '../types';
+import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Guardian, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction, Supplier, InventoryItem, InventoryStock, ProcurementEvent } from '../types';
 
 const API_BASE = '/api';
 
@@ -358,6 +358,108 @@ export const api = {
   },
   deletePaymentTransaction: async (paymentId: string): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/payment-transactions/${paymentId}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Suppliers
+  getSuppliers: async (): Promise<Supplier[]> => {
+    const res = await fetch(`${API_BASE}/suppliers`);
+    return handleResponse<Supplier[]>(res);
+  },
+  createSupplier: async (data: Partial<Supplier>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/suppliers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updateSupplier: async (id: string, data: Partial<Supplier>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/suppliers/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteSupplier: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/suppliers/${id}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Inventory Items
+  getInventoryItems: async (category?: string): Promise<InventoryItem[]> => {
+    const url = category ? `${API_BASE}/inventory-items?category=${category}` : `${API_BASE}/inventory-items`;
+    const res = await fetch(url);
+    return handleResponse<InventoryItem[]>(res);
+  },
+  createInventoryItem: async (data: Partial<InventoryItem>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/inventory-items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updateInventoryItem: async (id: string, data: Partial<InventoryItem>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/inventory-items/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteInventoryItem: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/inventory-items/${id}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Inventory Stock
+  getInventoryStock: async (messId?: string): Promise<InventoryStock[]> => {
+    const url = messId ? `${API_BASE}/inventory-stock?mess_id=${messId}` : `${API_BASE}/inventory-stock`;
+    const res = await fetch(url);
+    return handleResponse<InventoryStock[]>(res);
+  },
+  upsertInventoryStock: async (data: Partial<InventoryStock>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/inventory-stock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteInventoryStock: async (messId: string, itemId: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/inventory-stock/${messId}/${itemId}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+
+  // Procurement Events
+  getProcurementEvents: async (messId?: string, supplierId?: string): Promise<ProcurementEvent[]> => {
+    const params = new URLSearchParams();
+    if (messId) params.append('mess_id', messId);
+    if (supplierId) params.append('supplier_id', supplierId);
+    const url = `${API_BASE}/procurement-events?${params.toString()}`;
+    const res = await fetch(url);
+    return handleResponse<ProcurementEvent[]>(res);
+  },
+  createProcurementEvent: async (data: Partial<ProcurementEvent>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/procurement-events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updateProcurementEvent: async (id: string, data: Partial<ProcurementEvent>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/procurement-events/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteProcurementEvent: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/procurement-events/${id}`, { method: 'DELETE' });
     return handleResponse(res);
   },
 };

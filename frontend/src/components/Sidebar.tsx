@@ -6,12 +6,20 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
 }
 
+interface NavItem {
+  id: string;
+  label: string;
+  icon: any;
+  disabled?: boolean;
+  tag?: string;
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
-  const navItems = [
+  const navItems: NavItem[] = [
     { id: 'accommodations', label: 'Accommodations', icon: BedDouble },
     { id: 'personnel', label: 'Personnel & People', icon: Users },
     { id: 'mess', label: 'Mess & Dining', icon: Utensils, disabled: false },
-    { id: 'inventory', label: 'Inventory', icon: Package, disabled: true, tag: 'Phase 2' },
+    { id: 'inventory', label: 'Inventory & Supplies', icon: Package, disabled: false },
     { id: 'financials', label: 'Financials', icon: CreditCard, disabled: false },
   ];
 

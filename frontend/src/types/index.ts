@@ -164,3 +164,43 @@ export interface PaymentTransaction {
   LastName?: string;
 }
 
+export interface Supplier {
+  SupplierID: string;
+  SupplierName: string;
+  Phone?: string;
+  Email?: string;
+  Address?: string;
+}
+
+export interface InventoryItem {
+  ItemID: string;
+  ItemName: string;
+  Category: 'Dairy' | 'Vegetables' | 'Grains' | 'Spices' | 'Cleaning' | 'Other';
+  Unit: 'kg' | 'litre' | 'units' | 'packets';
+}
+
+export interface InventoryStock {
+  MessID: string;
+  ItemID: string;
+  CurrentQuantity: number;
+  LastUpdatedDate: string;
+  MessName?: string;
+  ItemName?: string;
+  Category?: string;
+  Unit?: string;
+}
+
+export interface ProcurementEvent {
+  PurchaseID: string;
+  MessID: string;
+  SupplierID: string;
+  ItemID: string;
+  Quantity: number;
+  PurchaseDate: string;
+  UnitPrice: number;
+  TotalCost: number;
+  MessName?: string;
+  SupplierName?: string;
+  ItemName?: string;
+}
+
