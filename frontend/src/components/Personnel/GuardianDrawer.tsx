@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Student, Guardian } from '../../types';
 import { api } from '../../services/api';
-import { X, Plus, Shield, Phone, Mail, MapPin, User } from 'lucide-react';
+import { X, Plus, Shield, Phone, Mail, MapPin, User, Edit2, Trash2 } from 'lucide-react';
 
 interface GuardianDrawerProps {
   student: Student | null;
@@ -11,7 +11,8 @@ interface GuardianDrawerProps {
 export const GuardianDrawer: React.FC<GuardianDrawerProps> = ({ student, onClose }) => {
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingGuardian, setEditingGuardian] = useState<Guardian | null>(null);
 
   const [formData, setFormData] = useState<Partial<Guardian>>({
     GuardianID: '',
@@ -38,15 +39,72 @@ export const GuardianDrawer: React.FC<GuardianDrawerProps> = ({ student, onClose
 
   if (!student) return null;
 
-  const handleAddGuardian = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await api.createGuardian({
-      ...formData,
+  const handleOpenAdd = () => {
+    setEditingGuardian(null);
+    setFormData({
       GuardianID: `G-${Date.now().toString().slice(-4)}`,
-      StudentID: student.StudentID,
+      GuardianName: '',
+      Relationship: 'Father',
+      Phone: '',
+      Email: '',
+      Address: '',
     });
-    setShowAddForm(false);
-    loadGuardians();
+    setShowForm(true);
+  };
+
+  const handleOpenEdit = (g: Guardian) => {
+    setEditingGuardian(g);
+    const gName = g.GuardianName || ((g as any).FirstName ? `${(g as any).FirstName} ${(g as any).LastName || ''}`.trim() : '');
+    const rel = g.Relationship || (g as any).Relation || 'Father';
+    setFormData({
+      GuardianID: g.GuardianID,
+      GuardianName: gName,
+      Relationship: rel,
+      Phone: g.Phone || '',
+      Email: g.Email || '',
+      Address: g.Address || '',
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmitGuardian = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const gNameParts = (formData.GuardianName || '').trim().split(' ');
+    const fName = gNameParts[0] || 'Guardian';
+    const lName = gNameParts.slice(1).join(' ') || '';
+    
+    const payload: any = {
+      ...formData,
+      StudentID: student.StudentID,
+      FirstName: fName,
+      LastName: lName,
+      Relation: formData.Relationship || 'Father',
+    };
+
+    try {
+      if (editingGuardian) {
+        await api.updateGuardian(editingGuardian.GuardianID, payload);
+      } else {
+        await api.createGuardian({
+          ...payload,
+          GuardianID: formData.GuardianID || `G-${Date.now().toString().slice(-4)}`,
+        });
+      }
+      setShowForm(false);
+      loadGuardians();
+    } catch (err: any) {
+      alert(err.message || 'Failed to save guardian');
+    }
+  };
+
+  const handleDeleteGuardian = async (guardianId: string) => {
+    if (!window.confirm(`Delete guardian record ID ${guardianId}?`)) return;
+    try {
+      await api.deleteGuardian(guardianId);
+      loadGuardians();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete guardian');
+    }
   };
 
   return (
@@ -74,14 +132,16 @@ export const GuardianDrawer: React.FC<GuardianDrawerProps> = ({ student, onClose
           <h3 style={{ fontSize: '1.05rem', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Shield size={18} style={{ color: 'var(--accent-primary)' }} /> Registered Guardians ({guardians.length})
           </h3>
-          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => setShowAddForm(true)}>
+          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={handleOpenAdd}>
             <Plus size={14} /> Add Guardian
           </button>
         </div>
 
-        {showAddForm && (
-          <form onSubmit={handleAddGuardian} style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid var(--border-medium)' }}>
-            <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>Add Guardian for {student.FirstName}</h4>
+        {showForm && (
+          <form onSubmit={handleSubmitGuardian} style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '12px', marginBottom: '20px', border: '1px solid var(--border-medium)' }}>
+            <h4 style={{ fontSize: '0.9rem', marginBottom: '12px' }}>
+              {editingGuardian ? `Edit Guardian (ID: ${editingGuardian.GuardianID})` : `Add Guardian for ${student.FirstName}`}
+            </h4>
             <div className="form-group">
               <label>Guardian Full Name</label>
               <input
@@ -98,7 +158,7 @@ export const GuardianDrawer: React.FC<GuardianDrawerProps> = ({ student, onClose
                 <select
                   className="form-select"
                   value={formData.Relationship || 'Father'}
-                  onChange={(e) => setFormData({ ...formData, Relationship: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, Relationship: e.target.value as any })}
                 >
                   <option value="Father">Father</option>
                   <option value="Mother">Mother</option>
@@ -128,11 +188,11 @@ export const GuardianDrawer: React.FC<GuardianDrawerProps> = ({ student, onClose
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
-              <button type="button" className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setShowAddForm(false)}>
+              <button type="button" className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => setShowForm(false)}>
                 Cancel
               </button>
               <button type="submit" className="btn btn-primary" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                Save Guardian
+                {editingGuardian ? 'Update Guardian' : 'Save Guardian'}
               </button>
             </div>
           </form>
@@ -146,36 +206,57 @@ export const GuardianDrawer: React.FC<GuardianDrawerProps> = ({ student, onClose
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {guardians.map((g) => (
-              <div key={g.GuardianID} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <User size={16} /> {g.GuardianName}
-                  </div>
-                  <span className="badge badge-occupied" style={{ fontSize: '0.7rem' }}>
-                    {g.Relationship}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Phone size={14} /> <span>{g.Phone}</span>
-                  </div>
-                  {g.Email && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Mail size={14} /> <span>{g.Email}</span>
+            {guardians.map((g) => {
+              const name = g.GuardianName || ((g as any).FirstName ? `${(g as any).FirstName} ${(g as any).LastName || ''}`.trim() : 'Guardian');
+              const rel = g.Relationship || (g as any).Relation || 'Father';
+              return (
+                <div key={g.GuardianID} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '12px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <User size={16} /> {name}
                     </div>
-                  )}
-                  {g.Address && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <MapPin size={14} /> <span>{g.Address}</span>
+                      <span className="badge badge-occupied" style={{ fontSize: '0.7rem' }}>
+                        {rel}
+                      </span>
+                      <button
+                        onClick={() => handleOpenEdit(g)}
+                        title="Edit Guardian"
+                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteGuardian(g.GuardianID)}
+                        title="Delete Guardian"
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
-                  )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Phone size={14} /> <span>{g.Phone}</span>
+                    </div>
+                    {g.Email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Mail size={14} /> <span>{g.Email}</span>
+                      </div>
+                    )}
+                    {g.Address && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <MapPin size={14} /> <span>{g.Address}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
 };
+

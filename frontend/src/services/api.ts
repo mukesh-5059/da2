@@ -183,6 +183,18 @@ export const api = {
     });
     return handleResponse(res);
   },
+  updateGuardian: async (id: string, data: Partial<Guardian>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/guardians/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  deleteGuardian: async (id: string): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/guardians/${id}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
 
   // Staff
   getStaff: async (): Promise<Staff[]> => {
@@ -277,6 +289,14 @@ export const api = {
     });
     return handleResponse(res);
   },
+  updateMessSchedule: async (id: string, data: Partial<MessSchedule>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/mess-schedules/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
   deleteMessSchedule: async (id: string): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/mess-schedules/${id}`, { method: 'DELETE' });
     return handleResponse(res);
@@ -291,6 +311,14 @@ export const api = {
   createMessEnrollment: async (data: Partial<MessEnrollment>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/mess-enrollments`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(res);
+  },
+  updateMessEnrollment: async (id: string, data: Partial<MessEnrollment>): Promise<{ message: string }> => {
+    const res = await fetch(`${API_BASE}/mess-enrollments/${id}`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });

@@ -12,9 +12,9 @@ interface MessTabProps {
   onDeleteMess: (id: string) => Promise<void>;
   onSaveMeal: (data: Partial<Meal>, isEdit: boolean) => Promise<void>;
   onDeleteMeal: (id: string) => Promise<void>;
-  onSaveSchedule: (data: Partial<MessSchedule>) => Promise<void>;
+  onSaveSchedule: (data: Partial<MessSchedule>, isEdit?: boolean) => Promise<void>;
   onDeleteSchedule: (id: string) => Promise<void>;
-  onSaveEnrollment: (data: Partial<MessEnrollment>) => Promise<void>;
+  onSaveEnrollment: (data: Partial<MessEnrollment>, isEdit?: boolean) => Promise<void>;
   onDeleteEnrollment: (id: string) => Promise<void>;
   onSelectStudent: (studentId: string) => void;
 }
@@ -47,7 +47,9 @@ export const MessTab: React.FC<MessTabProps> = ({
   const [selectedMessForMeal, setSelectedMessForMeal] = useState<Mess | null>(null);
 
   const [selectedMessForSchedule, setSelectedMessForSchedule] = useState<Mess | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<Partial<MessSchedule> | null>(null);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [editingEnrollment, setEditingEnrollment] = useState<Partial<MessEnrollment> | null>(null);
 
   // Form states
   const [messFormData, setMessFormData] = useState<Partial<Mess>>({
@@ -152,6 +154,7 @@ export const MessTab: React.FC<MessTabProps> = ({
     const mId = mess.MessID || (mess as any).mess_id;
     const messMeals = meals.filter((m) => (m.MessID || (m as any).mess_id) === mId);
     setSelectedMessForSchedule(mess);
+    setEditingSchedule(null);
     setScheduleFormData({
       ScheduleID: `SCH_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
       MessID: mId,
@@ -163,19 +166,34 @@ export const MessTab: React.FC<MessTabProps> = ({
     });
   };
 
+  const handleOpenEditSchedule = (s: MessSchedule) => {
+    setEditingSchedule(s);
+    setScheduleFormData({
+      ScheduleID: s.ScheduleID || (s as any).schedule_id,
+      MessID: s.MessID || (s as any).mess_id,
+      MealID: s.MealID || (s as any).meal_id,
+      DayOfWeek: (s.DayOfWeek || (s as any).day_of_week || 'Monday') as any,
+      MealTime: (s.MealTime || (s as any).meal_time || 'Breakfast') as any,
+    });
+  };
+
   const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedMessForSchedule || !scheduleFormData.MealID) return;
     const mId = selectedMessForSchedule.MessID || (selectedMessForSchedule as any).mess_id;
 
-    await onSaveSchedule({
-      ScheduleID: scheduleFormData.ScheduleID || `SCH_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-      MessID: mId,
-      MealID: scheduleFormData.MealID,
-      DayOfWeek: scheduleFormData.DayOfWeek || 'Monday',
-      MealTime: scheduleFormData.MealTime || 'Breakfast',
-    });
+    await onSaveSchedule(
+      {
+        ScheduleID: scheduleFormData.ScheduleID || `SCH_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+        MessID: mId,
+        MealID: scheduleFormData.MealID,
+        DayOfWeek: scheduleFormData.DayOfWeek || 'Monday',
+        MealTime: scheduleFormData.MealTime || 'Breakfast',
+      },
+      !!editingSchedule
+    );
 
+    setEditingSchedule(null);
     const messMeals = meals.filter((m) => (m.MessID || (m as any).mess_id) === mId);
     setScheduleFormData({
       ScheduleID: `SCH_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
@@ -186,9 +204,36 @@ export const MessTab: React.FC<MessTabProps> = ({
     });
   };
 
+  const handleOpenAddEnrollment = () => {
+    setEditingEnrollment(null);
+    setEnrollFormData({
+      EnrollmentID: `ME_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+      StudentID: students[0]?.StudentID || '',
+      MessID: messes[0]?.MessID || '',
+      MealPlanType: 'Veg',
+      StartDate: new Date().toISOString().split('T')[0],
+      IsActive: 1,
+    });
+    setShowEnrollModal(true);
+  };
+
+  const handleOpenEditEnrollment = (enr: MessEnrollment) => {
+    setEditingEnrollment(enr);
+    setEnrollFormData({
+      EnrollmentID: enr.EnrollmentID || (enr as any).enrollment_id,
+      StudentID: enr.StudentID || (enr as any).student_id,
+      MessID: enr.MessID || (enr as any).mess_id,
+      MealPlanType: (enr.MealPlanType || (enr as any).meal_plan_type || 'Veg') as any,
+      StartDate: enr.StartDate || (enr as any).start_date || new Date().toISOString().split('T')[0],
+      EndDate: enr.EndDate || (enr as any).end_date || '',
+      IsActive: enr.IsActive !== undefined ? enr.IsActive : 1,
+    });
+    setShowEnrollModal(true);
+  };
+
   const handleEnrollSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSaveEnrollment(enrollFormData);
+    await onSaveEnrollment(enrollFormData, !!editingEnrollment);
     setShowEnrollModal(false);
   };
 
@@ -368,8 +413,9 @@ export const MessTab: React.FC<MessTabProps> = ({
               </p>
             </div>
 
-            <button className="btn btn-primary" onClick={() => setShowEnrollModal(true)}>
-              <Plus size={16} /> Enroll Student
+            <button className="btn btn-primary" onClick={handleOpenAddEnrollment}>
+              <Plus size={16} />
+              Enroll Student
             </button>
           </div>
 
@@ -447,13 +493,24 @@ export const MessTab: React.FC<MessTabProps> = ({
                           </span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', color: '#f87171' }}
-                            onClick={() => onDeleteEnrollment(enr.EnrollmentID || (enr as any).enrollment_id)}
-                          >
-                            <Trash2 size={13} /> Cancel Enrollment
-                          </button>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                              onClick={() => handleOpenEditEnrollment(enr)}
+                              title="Edit Enrollment"
+                            >
+                              <Edit2 size={13} /> Edit
+                            </button>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#f87171' }}
+                              onClick={() => onDeleteEnrollment(enr.EnrollmentID || (enr as any).enrollment_id)}
+                              title="Cancel Enrollment"
+                            >
+                              <Trash2 size={13} /> Cancel
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -756,13 +813,22 @@ export const MessTab: React.FC<MessTabProps> = ({
                                   {itemName}
                                 </strong>
                               </div>
-                              <button
-                                style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '2px', marginLeft: '6px', flexShrink: 0 }}
-                                onClick={() => onDeleteSchedule && onDeleteSchedule(sId)}
-                                title="Remove schedule item"
-                              >
-                                <Trash2 size={13} />
-                              </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '6px', flexShrink: 0 }}>
+                                <button
+                                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px' }}
+                                  onClick={() => handleOpenEditSchedule(s)}
+                                  title="Edit schedule item"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '2px' }}
+                                  onClick={() => onDeleteSchedule && onDeleteSchedule(sId)}
+                                  title="Remove schedule item"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
                             </div>
                           );
                         })}

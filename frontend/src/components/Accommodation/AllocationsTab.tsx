@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { RoomAllocation, Student, Room } from '../../types';
-import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock } from 'lucide-react';
+import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2 } from 'lucide-react';
 
 interface AllocationsTabProps {
   allocations: RoomAllocation[];
   students: Student[];
   rooms: Room[];
-  onAllocate: (data: Partial<RoomAllocation>) => Promise<void>;
+  onAllocate: (data: Partial<RoomAllocation>, isEdit?: boolean) => Promise<void>;
   onCheckOut: (allocationId: string) => Promise<void>;
+  onDeleteAllocation?: (allocationId: string) => Promise<void>;
   onSelectStudent?: (studentId: string) => void;
 }
 
@@ -17,9 +18,11 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
   rooms,
   onAllocate,
   onCheckOut,
+  onDeleteAllocation,
   onSelectStudent,
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [editingAlloc, setEditingAlloc] = useState<Partial<RoomAllocation> | null>(null);
   const [formData, setFormData] = useState<Partial<RoomAllocation>>({
     AllocationID: `ALLOC-${Date.now().toString().slice(-4)}`,
     StudentID: students[0]?.StudentID || '',
@@ -30,6 +33,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
   });
 
   const handleOpenAdd = () => {
+    setEditingAlloc(null);
     setFormData({
       AllocationID: `ALLOC-${Date.now().toString().slice(-4)}`,
       StudentID: students[0]?.StudentID || '',
@@ -41,9 +45,22 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
     setShowModal(true);
   };
 
+  const handleOpenEdit = (alloc: RoomAllocation) => {
+    setEditingAlloc(alloc);
+    setFormData({
+      AllocationID: alloc.AllocationID || (alloc as any).allocation_id,
+      StudentID: alloc.StudentID || (alloc as any).student_id,
+      RoomNo: alloc.RoomNo || (alloc as any).room_no,
+      AcademicYear: alloc.AcademicYear || (alloc as any).academic_year || '2025-26',
+      Semester: alloc.Semester || (alloc as any).semester || 'Fall',
+      CheckInDate: alloc.CheckInDate || (alloc as any).check_in_date || new Date().toISOString().split('T')[0],
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onAllocate(formData);
+    await onAllocate(formData, !!editingAlloc);
     setShowModal(false);
   };
 
@@ -79,10 +96,11 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
           </thead>
           <tbody>
             {allocations.map((alloc) => {
+              const allocId = alloc.AllocationID || (alloc as any).allocation_id;
               const isActive = !alloc.CheckOutDate;
               return (
-                <tr key={alloc.AllocationID}>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{alloc.AllocationID}</td>
+                <tr key={allocId}>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{allocId}</td>
                   <td>
                     <div>
                       {onSelectStudent ? (
@@ -125,15 +143,36 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                     )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    {isActive && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                       <button
                         className="btn btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '0.75rem', color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }}
-                        onClick={() => onCheckOut(alloc.AllocationID)}
+                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                        onClick={() => handleOpenEdit(alloc)}
+                        title="Edit Allocation"
                       >
-                        <LogOut size={14} /> Check Out
+                        <Edit2 size={14} /> Edit
                       </button>
-                    )}
+                      {isActive && (
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)' }}
+                          onClick={() => onCheckOut(allocId)}
+                          title="Check Out Resident"
+                        >
+                          <LogOut size={14} /> Check Out
+                        </button>
+                      )}
+                      {onDeleteAllocation && (
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}
+                          onClick={() => onDeleteAllocation(allocId)}
+                          title="Delete Allocation Record"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -145,7 +184,9 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
       {showModal && (
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>Allocate Room to Student</h3>
+            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>
+              {editingAlloc ? `Edit Allocation ${editingAlloc.AllocationID}` : 'Allocate Room to Student'}
+            </h3>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -156,6 +197,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                   value={formData.AllocationID || ''}
                   onChange={(e) => setFormData({ ...formData, AllocationID: e.target.value })}
                   required
+                  disabled={!!editingAlloc}
                 />
               </div>
 
@@ -233,7 +275,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Confirm Allocation
+                  {editingAlloc ? 'Update Allocation' : 'Confirm Allocation'}
                 </button>
               </div>
             </form>
@@ -243,3 +285,4 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
     </div>
   );
 };
+

@@ -266,10 +266,11 @@ def add_allocation():
     conn = get_db()
     try:
         cursor = conn.cursor()
+        semester = data.get('Semester', 'Fall')
         cursor.execute('''
-            INSERT INTO ROOM_ALLOCATION (AllocationID, StudentID, RoomNo, AcademicYear, CheckInDate, CheckOutDate, AmountPaid)
+            INSERT INTO ROOM_ALLOCATION (AllocationID, StudentID, RoomNo, AcademicYear, Semester, CheckInDate, CheckOutDate)
             VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (data.get('AllocationID'), data['StudentID'], data['RoomNo'], data['AcademicYear'], data['CheckInDate'], data.get('CheckOutDate'), data.get('AmountPaid', 0)))
+        ''', (data.get('AllocationID'), data['StudentID'], data['RoomNo'], data.get('AcademicYear', '2024-2025'), semester, data['CheckInDate'], data.get('CheckOutDate')))
         
         cursor.execute("UPDATE ROOM SET Status = 'Occupied' WHERE RoomNo = ?", (data['RoomNo'],))
         conn.commit()
@@ -289,7 +290,7 @@ def update_allocation(allocation_id):
         updates = []
         params = []
         for key, value in data.items():
-            if key in ['CheckOutDate', 'AmountPaid', 'RoomNo', 'CheckInDate', 'AcademicYear', 'StudentID']:
+            if key in ['CheckOutDate', 'RoomNo', 'CheckInDate', 'AcademicYear', 'Semester', 'StudentID']:
                 updates.append(f"{key} = ?")
                 params.append(value)
         

@@ -29,10 +29,11 @@ def add_mess():
     conn = get_db()
     try:
         cursor = conn.cursor()
+        capacity = data.get('SeatingCapacity') or data.get('Capacity', 100)
         cursor.execute('''
-            INSERT INTO MESS (MessID, MessName, MessType, Capacity, Location)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (data['MessID'], data['MessName'], data['MessType'], data.get('Capacity'), data.get('Location')))
+            INSERT INTO MESS (MessID, MessName, MessType, Location, Phone, SeatingCapacity)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (data['MessID'], data['MessName'], data['MessType'], data.get('Location'), data.get('Phone'), capacity))
         conn.commit()
         return jsonify({'message': 'Mess added successfully'}), 201
     except Exception as e:
@@ -47,11 +48,12 @@ def update_mess(mess_id):
     conn = get_db()
     try:
         cursor = conn.cursor()
+        capacity = data.get('SeatingCapacity') or data.get('Capacity', 100)
         cursor.execute('''
             UPDATE MESS 
-            SET MessName = ?, MessType = ?, Capacity = ?, Location = ?
+            SET MessName = ?, MessType = ?, Location = ?, Phone = ?, SeatingCapacity = ?
             WHERE MessID = ?
-        ''', (data['MessName'], data['MessType'], data.get('Capacity'), data.get('Location'), mess_id))
+        ''', (data['MessName'], data['MessType'], data.get('Location'), data.get('Phone'), capacity, mess_id))
         conn.commit()
         return jsonify({'message': 'Mess updated successfully'}), 200
     except Exception as e:

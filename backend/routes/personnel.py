@@ -112,10 +112,12 @@ def add_student():
     conn = get_db()
     try:
         cursor = conn.cursor()
+        dob = data.get('DOB') or data.get('DateOfBirth')
+        admission_date = data.get('AdmissionDate') or data.get('AdmissionYear', '2023-08-01')
         cursor.execute('''
-            INSERT INTO STUDENT (StudentID, FirstName, LastName, DateOfBirth, Gender, Phone, Email, Address, Department, IsActive)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (data['StudentID'], data['FirstName'], data['LastName'], data.get('DateOfBirth'), data.get('Gender'), data.get('Phone'), data.get('Email'), data.get('Address'), data.get('Department'), data.get('IsActive', 1)))
+            INSERT INTO STUDENT (StudentID, FirstName, LastName, Gender, DOB, Email, Phone, BloodGroup, Department, AdmissionDate, IsActive)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (data['StudentID'], data['FirstName'], data['LastName'], data.get('Gender'), dob, data.get('Email'), data.get('Phone'), data.get('BloodGroup'), data.get('Department'), admission_date, data.get('IsActive', 1)))
         conn.commit()
         return jsonify({'message': 'Student added successfully'}), 201
     except Exception as e:
@@ -130,11 +132,13 @@ def update_student(student_id):
     conn = get_db()
     try:
         cursor = conn.cursor()
+        dob = data.get('DOB') or data.get('DateOfBirth')
+        admission_date = data.get('AdmissionDate') or data.get('AdmissionYear', '2023-08-01')
         cursor.execute('''
             UPDATE STUDENT 
-            SET FirstName = ?, LastName = ?, DateOfBirth = ?, Gender = ?, Phone = ?, Email = ?, Address = ?, Department = ?, IsActive = ?
+            SET FirstName = ?, LastName = ?, Gender = ?, DOB = ?, Email = ?, Phone = ?, BloodGroup = ?, Department = ?, AdmissionDate = ?, IsActive = ?
             WHERE StudentID = ?
-        ''', (data['FirstName'], data['LastName'], data.get('DateOfBirth'), data.get('Gender'), data.get('Phone'), data.get('Email'), data.get('Address'), data.get('Department'), data.get('IsActive', 1), student_id))
+        ''', (data['FirstName'], data['LastName'], data.get('Gender'), dob, data.get('Email'), data.get('Phone'), data.get('BloodGroup'), data.get('Department'), admission_date, data.get('IsActive', 1), student_id))
         conn.commit()
         return jsonify({'message': 'Student updated successfully'}), 200
     except Exception as e:
@@ -189,10 +193,12 @@ def add_guardian():
     conn = get_db()
     try:
         cursor = conn.cursor()
+        guardian_name = data.get('GuardianName') or f"{data.get('FirstName', '')} {data.get('LastName', '')}".strip() or 'Guardian'
+        relationship = data.get('Relationship') or data.get('Relation', 'Other')
         cursor.execute('''
-            INSERT INTO GUARDIAN (GuardianID, StudentID, FirstName, LastName, Relation, Phone, Email, Address)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (data.get('GuardianID'), data['StudentID'], data['FirstName'], data['LastName'], data.get('Relation'), data.get('Phone'), data.get('Email'), data.get('Address')))
+            INSERT INTO GUARDIAN (GuardianID, StudentID, GuardianName, Relationship, Phone, Email, Address)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (data.get('GuardianID'), data['StudentID'], guardian_name, relationship, data.get('Phone', ''), data.get('Email'), data.get('Address')))
         conn.commit()
         return jsonify({'message': 'Guardian added successfully'}), 201
     except Exception as e:
@@ -207,11 +213,13 @@ def update_guardian(guardian_id):
     conn = get_db()
     try:
         cursor = conn.cursor()
+        guardian_name = data.get('GuardianName') or f"{data.get('FirstName', '')} {data.get('LastName', '')}".strip() or 'Guardian'
+        relationship = data.get('Relationship') or data.get('Relation', 'Other')
         cursor.execute('''
             UPDATE GUARDIAN 
-            SET StudentID = ?, FirstName = ?, LastName = ?, Relation = ?, Phone = ?, Email = ?, Address = ?
+            SET StudentID = ?, GuardianName = ?, Relationship = ?, Phone = ?, Email = ?, Address = ?
             WHERE GuardianID = ?
-        ''', (data['StudentID'], data['FirstName'], data['LastName'], data.get('Relation'), data.get('Phone'), data.get('Email'), data.get('Address'), guardian_id))
+        ''', (data.get('StudentID'), guardian_name, relationship, data.get('Phone', ''), data.get('Email'), data.get('Address'), guardian_id))
         conn.commit()
         return jsonify({'message': 'Guardian updated successfully'}), 200
     except Exception as e:
@@ -272,10 +280,12 @@ def add_staff():
     conn = get_db()
     try:
         cursor = conn.cursor()
+        shift = data.get('ShiftSlot') or data.get('Shift', 'Morning')
+        join_date = data.get('JoinDate') or data.get('HireDate', '2024-01-01')
         cursor.execute('''
-            INSERT INTO STAFF (StaffID, FirstName, LastName, Role, Phone, Shift, Salary, HireDate, HostelID, MessID)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (data['StaffID'], data['FirstName'], data['LastName'], data.get('Role'), data.get('Phone'), data.get('Shift'), data.get('Salary'), data.get('HireDate'), data.get('HostelID'), data.get('MessID')))
+            INSERT INTO STAFF (StaffID, FirstName, LastName, Phone, JoinDate, Salary, Role, ShiftSlot, CuisineType, MessID, HostelID)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (data['StaffID'], data['FirstName'], data['LastName'], data.get('Phone', ''), join_date, data.get('Salary', 0), data.get('Role', 'Helper'), shift, data.get('CuisineType'), data.get('MessID'), data.get('HostelID')))
         conn.commit()
         return jsonify({'message': 'Staff added successfully'}), 201
     except Exception as e:
@@ -290,11 +300,13 @@ def update_staff(staff_id):
     conn = get_db()
     try:
         cursor = conn.cursor()
+        shift = data.get('ShiftSlot') or data.get('Shift', 'Morning')
+        join_date = data.get('JoinDate') or data.get('HireDate', '2024-01-01')
         cursor.execute('''
             UPDATE STAFF 
-            SET FirstName = ?, LastName = ?, Role = ?, Phone = ?, Shift = ?, Salary = ?, HireDate = ?, HostelID = ?, MessID = ?
+            SET FirstName = ?, LastName = ?, Phone = ?, JoinDate = ?, Salary = ?, Role = ?, ShiftSlot = ?, CuisineType = ?, MessID = ?, HostelID = ?
             WHERE StaffID = ?
-        ''', (data['FirstName'], data['LastName'], data.get('Role'), data.get('Phone'), data.get('Shift'), data.get('Salary'), data.get('HireDate'), data.get('HostelID'), data.get('MessID'), staff_id))
+        ''', (data['FirstName'], data['LastName'], data.get('Phone', ''), join_date, data.get('Salary', 0), data.get('Role', 'Helper'), shift, data.get('CuisineType'), data.get('MessID'), data.get('HostelID'), staff_id))
         conn.commit()
         return jsonify({'message': 'Staff updated successfully'}), 200
     except Exception as e:

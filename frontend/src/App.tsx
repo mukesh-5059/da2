@@ -241,10 +241,27 @@ export const App: React.FC = () => {
   };
 
   // CRUD Handlers for Allocations
-  const handleAllocate = async (data: Partial<RoomAllocation>) => {
+  const handleAllocate = async (data: Partial<RoomAllocation>, isEdit?: boolean) => {
     try {
-      await api.createAllocation(data);
-      showToast(`Allocated Room successfully.`);
+      const id = data.AllocationID || (data as any).allocation_id;
+      if (isEdit && id) {
+        await api.updateAllocation(id, data);
+        showToast(`Allocation updated successfully.`);
+      } else {
+        await api.createAllocation(data);
+        showToast(`Allocated Room successfully.`);
+      }
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeleteAllocation = async (allocId: string) => {
+    if (!window.confirm(`Delete allocation record ID ${allocId}?`)) return;
+    try {
+      await api.deleteAllocation(allocId);
+      showToast(`Allocation ${allocId} deleted.`);
       loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
@@ -400,10 +417,16 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSaveMessSchedule = async (data: Partial<MessSchedule>) => {
+  const handleSaveMessSchedule = async (data: Partial<MessSchedule>, isEdit?: boolean) => {
     try {
-      await api.createMessSchedule(data);
-      showToast(`Added schedule item.`);
+      const id = data.ScheduleID || (data as any).schedule_id;
+      if (isEdit && id) {
+        await api.updateMessSchedule(id, data);
+        showToast(`Updated schedule item.`);
+      } else {
+        await api.createMessSchedule(data);
+        showToast(`Added schedule item.`);
+      }
       loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
@@ -420,10 +443,16 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSaveMessEnrollment = async (data: Partial<MessEnrollment>) => {
+  const handleSaveMessEnrollment = async (data: Partial<MessEnrollment>, isEdit?: boolean) => {
     try {
-      await api.createMessEnrollment(data);
-      showToast(`Enrolled student into mess.`);
+      const id = data.EnrollmentID || (data as any).enrollment_id;
+      if (isEdit && id) {
+        await api.updateMessEnrollment(id, data);
+        showToast(`Updated mess enrollment.`);
+      } else {
+        await api.createMessEnrollment(data);
+        showToast(`Enrolled student into mess.`);
+      }
       loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
@@ -442,10 +471,16 @@ export const App: React.FC = () => {
   };
 
   // CRUD Handlers for Financials
-  const handleSaveBill = async (data: Partial<MonthlyBill>) => {
+  const handleSaveBill = async (data: Partial<MonthlyBill>, isEdit?: boolean) => {
     try {
-      await api.createMonthlyBill(data);
-      showToast(`Generated monthly bill successfully.`);
+      const id = data.BillID || (data as any).bill_id;
+      if (isEdit && id) {
+        await api.updateMonthlyBill(id, data);
+        showToast(`Updated bill ${id} successfully.`);
+      } else {
+        await api.createMonthlyBill(data);
+        showToast(`Generated monthly bill successfully.`);
+      }
       loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
@@ -476,10 +511,27 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleRecordPayment = async (data: Partial<PaymentTransaction>) => {
+  const handleRecordPayment = async (data: Partial<PaymentTransaction>, isEdit?: boolean) => {
     try {
-      await api.createPaymentTransaction(data);
-      showToast(`Recorded payment transaction successfully.`);
+      const id = data.PaymentID || (data as any).payment_id;
+      if (isEdit && id) {
+        await api.updatePaymentTransaction(id, data);
+        showToast(`Payment transaction updated.`);
+      } else {
+        await api.createPaymentTransaction(data);
+        showToast(`Recorded payment transaction successfully.`);
+      }
+      loadTabSpecificData();
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
+  const handleDeletePaymentTransaction = async (paymentId: string) => {
+    if (!window.confirm(`Delete payment transaction ${paymentId}?`)) return;
+    try {
+      await api.deletePaymentTransaction(paymentId);
+      showToast(`Payment transaction deleted.`);
       loadTabSpecificData();
     } catch (err: any) {
       showError(err.message);
@@ -711,6 +763,7 @@ export const App: React.FC = () => {
                   rooms={rooms}
                   onAllocate={handleAllocate}
                   onCheckOut={handleCheckOut}
+                  onDeleteAllocation={handleDeleteAllocation}
                   onSelectStudent={handleSelectStudentById}
                 />
               )}
@@ -779,6 +832,7 @@ export const App: React.FC = () => {
               onUpdateBillStatus={handleUpdateBillStatus}
               onDeleteBill={handleDeleteBill}
               onRecordPayment={handleRecordPayment}
+              onDeletePaymentTransaction={handleDeletePaymentTransaction}
               onSelectStudent={handleSelectStudentById}
             />
           )}

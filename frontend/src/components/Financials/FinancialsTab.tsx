@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { MonthlyBill, PaymentTransaction, Student } from '../../types';
-import { CreditCard, DollarSign, Plus, CheckCircle, Clock, AlertTriangle, Trash2, Search, ArrowUpRight } from 'lucide-react';
+import { CreditCard, DollarSign, Plus, CheckCircle, Clock, AlertTriangle, Trash2, Search, ArrowUpRight, Edit2 } from 'lucide-react';
 
 interface FinancialsTabProps {
   bills: MonthlyBill[];
   transactions: PaymentTransaction[];
   students: Student[];
-  onSaveBill: (data: Partial<MonthlyBill>) => Promise<void>;
+  onSaveBill: (data: Partial<MonthlyBill>, isEdit?: boolean) => Promise<void>;
   onUpdateBillStatus: (billId: string, status: 'PAID' | 'PENDING' | 'OVERDUE') => Promise<void>;
   onDeleteBill: (billId: string) => Promise<void>;
-  onRecordPayment: (data: Partial<PaymentTransaction>) => Promise<void>;
+  onRecordPayment: (data: Partial<PaymentTransaction>, isEdit?: boolean) => Promise<void>;
+  onDeletePaymentTransaction?: (paymentId: string) => Promise<void>;
   onSelectStudent: (studentId: string) => void;
 }
 
@@ -21,6 +22,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
   onUpdateBillStatus,
   onDeleteBill,
   onRecordPayment,
+  onDeletePaymentTransaction,
   onSelectStudent,
 }) => {
   const [subTab, setSubTab] = useState<'bills' | 'transactions'>('bills');
@@ -29,7 +31,10 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
 
   // Modals state
   const [showBillModal, setShowBillModal] = useState(false);
+  const [editingBill, setEditingBill] = useState<Partial<MonthlyBill> | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
+  const [showEditPayModal, setShowEditPayModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Partial<PaymentTransaction> | null>(null);
   const [selectedBillForPay, setSelectedBillForPay] = useState<MonthlyBill | null>(null);
 
   const [billFormData, setBillFormData] = useState<Partial<MonthlyBill>>({
@@ -54,10 +59,44 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
     TransactionReference: `TXN-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
   });
 
+  const handleOpenAddBill = () => {
+    setEditingBill(null);
+    setBillFormData({
+      BillID: `BILL-${Date.now().toString().slice(-4)}`,
+      StudentID: students[0]?.StudentID || '',
+      BillingMonth: new Date().getMonth() + 1,
+      BillingYear: new Date().getFullYear(),
+      RoomRentCharges: 10000,
+      MessCharges: 4500,
+      OtherCharges: 500,
+      TotalAmount: 15000,
+      DueDate: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      PaymentStatus: 'PENDING',
+    });
+    setShowBillModal(true);
+  };
+
+  const handleOpenEditBill = (b: MonthlyBill) => {
+    setEditingBill(b);
+    setBillFormData({
+      BillID: b.BillID || (b as any).bill_id,
+      StudentID: b.StudentID || (b as any).student_id,
+      BillingMonth: b.BillingMonth || (b as any).billing_month || (new Date().getMonth() + 1),
+      BillingYear: b.BillingYear || (b as any).billing_year || new Date().getFullYear(),
+      RoomRentCharges: b.RoomRentCharges || (b as any).room_rent_charges || 0,
+      MessCharges: b.MessCharges || (b as any).mess_charges || 0,
+      OtherCharges: b.OtherCharges || (b as any).other_charges || 0,
+      TotalAmount: b.TotalAmount || (b as any).total_amount || 0,
+      DueDate: b.DueDate || (b as any).due_date || new Date().toISOString().split('T')[0],
+      PaymentStatus: (b.PaymentStatus || (b as any).payment_status || 'PENDING') as any,
+    });
+    setShowBillModal(true);
+  };
+
   const handleBillSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const total = (Number(billFormData.RoomRentCharges) || 0) + (Number(billFormData.MessCharges) || 0) + (Number(billFormData.OtherCharges) || 0);
-    await onSaveBill({ ...billFormData, TotalAmount: total });
+    await onSaveBill({ ...billFormData, TotalAmount: total }, !!editingBill);
     setShowBillModal(false);
   };
 
@@ -82,6 +121,25 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
       await onUpdateBillStatus(bId, 'PAID');
     }
     setShowPayModal(false);
+  };
+
+  const handleOpenEditPayment = (t: PaymentTransaction) => {
+    setEditingPayment(t);
+    setPayFormData({
+      PaymentID: t.PaymentID || (t as any).payment_id,
+      BillID: t.BillID || (t as any).bill_id,
+      AmountPaid: t.AmountPaid || (t as any).amount_paid || 0,
+      PaymentMode: (t.PaymentMode || (t as any).payment_mode || 'UPI') as any,
+      PaymentDate: t.PaymentDate || (t as any).payment_date || new Date().toISOString().split('T')[0],
+      TransactionReference: t.TransactionReference || (t as any).transaction_reference || '',
+    });
+    setShowEditPayModal(true);
+  };
+
+  const handleEditPaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await onRecordPayment(payFormData, true);
+    setShowEditPayModal(false);
   };
 
   // Calculations
@@ -166,8 +224,9 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
               </p>
             </div>
 
-            <button className="btn btn-primary" onClick={() => setShowBillModal(true)}>
-              <Plus size={16} /> Generate Bill
+            <button className="btn btn-primary" onClick={handleOpenAddBill}>
+              <Plus size={16} />
+              Generate Monthly Bill
             </button>
           </div>
 
@@ -269,6 +328,14 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                         </td>
                         <td style={{ textAlign: 'right' }}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                              onClick={() => handleOpenEditBill(b)}
+                              title="Edit Bill Charges"
+                            >
+                              <Edit2 size={13} /> Edit
+                            </button>
                             {!isPaid && (
                               <button
                                 className="btn btn-secondary"
@@ -282,6 +349,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                               className="btn btn-secondary"
                               style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#f87171' }}
                               onClick={() => onDeleteBill(b.BillID || (b as any).bill_id)}
+                              title="Delete Bill"
                             >
                               <Trash2 size={13} />
                             </button>
@@ -317,23 +385,25 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                   <th>Ref Number</th>
                   <th>Amount Paid</th>
                   <th>Payment Date</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No payment transactions recorded yet.
                     </td>
                   </tr>
                 ) : (
                   transactions.map((t) => {
+                    const tId = t.PaymentID || (t as any).payment_id;
                     const sId = t.StudentID || (t as any).student_id;
                     const name = `${t.FirstName || ''} ${t.LastName || ''}`.trim() || sId;
                     return (
-                      <tr key={t.PaymentID || (t as any).payment_id}>
+                      <tr key={tId}>
                         <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                          {t.PaymentID || (t as any).payment_id}
+                          {tId}
                         </td>
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{t.BillID || (t as any).bill_id}</td>
                         <td>
@@ -367,6 +437,28 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                           ₹{t.AmountPaid || (t as any).amount_paid}
                         </td>
                         <td>{t.PaymentDate || (t as any).payment_date}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                              onClick={() => handleOpenEditPayment(t)}
+                              title="Edit Transaction"
+                            >
+                              <Edit2 size={13} /> Edit
+                            </button>
+                            {onDeletePaymentTransaction && (
+                              <button
+                                className="btn btn-secondary"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#f87171' }}
+                                onClick={() => onDeletePaymentTransaction(tId)}
+                                title="Delete Transaction"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })
