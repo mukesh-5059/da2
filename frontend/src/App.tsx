@@ -74,6 +74,21 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleSelectRoomByNo = (roomNo: string) => {
+    const r = rooms.find((rm) => rm.RoomNo === roomNo);
+    if (r) {
+      setSelectedRoomDrawer(r);
+    } else {
+      setSelectedRoomDrawer({
+        RoomNo: roomNo,
+        FloorNo: 1,
+        Status: 'Occupied',
+        Type: 'Standard',
+        HostelID: 'HST',
+      } as Room);
+    }
+  };
+
   // 1. Initial Metadata Load (Hostels, Wardens, RoomTypes)
   const loadBaseMetadata = async () => {
     try {
@@ -765,6 +780,7 @@ export const App: React.FC = () => {
                   onCheckOut={handleCheckOut}
                   onDeleteAllocation={handleDeleteAllocation}
                   onSelectStudent={handleSelectStudentById}
+                  onSelectRoom={handleSelectRoomByNo}
                 />
               )}
             </>
@@ -839,11 +855,13 @@ export const App: React.FC = () => {
         </main>
       </div>
 
-      {/* Slide-over Inspection Drawer */}
+      {/* Room Detail Modal */}
       <RoomDrawer
         room={selectedRoomDrawer}
         onClose={() => setSelectedRoomDrawer(null)}
         onRefreshRooms={loadTabSpecificData}
+        onSelectStudent={handleSelectStudentById}
+        onDeleteRoom={handleDeleteRoom}
       />
 
       {/* 360 Student Profile Modal */}

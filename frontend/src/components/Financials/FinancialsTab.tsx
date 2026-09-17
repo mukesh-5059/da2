@@ -313,7 +313,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                             <button
                               className="btn btn-secondary"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--accent-glow)', color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)' }}
+                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                               onClick={() => setSelectedBillId(bId)}
                             >
                               <ArrowUpRight size={13} /> View Details
@@ -410,7 +410,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                             <button
                               className="btn btn-secondary"
-                              style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--accent-glow)', color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)' }}
+                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                               onClick={() => setSelectedTransactionId(tId)}
                             >
                               <ArrowUpRight size={13} /> View Details
@@ -497,7 +497,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                   style={{ padding: '6px 12px', fontSize: '0.8rem' }}
                   onClick={() => { setSelectedBillId(null); onSelectStudent(sId); }}
                 >
-                  360° Student Profile
+                  Student Profile
                 </button>
               </div>
 

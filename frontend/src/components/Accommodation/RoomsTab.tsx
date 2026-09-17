@@ -257,7 +257,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                       style={{ padding: '6px 12px', fontSize: '0.8rem' }}
                       onClick={() => onSelectHostelScope(hId)}
                     >
-                      Inspect Matrix →
+                      View Rooms →
                     </button>
                   </div>
                 </div>
@@ -437,29 +437,25 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                     const isOccupied = (rStatus as string) === 'Occupied' || (rStatus as string) === 'OCCUPIED';
 
                     return (
-                      <tr key={rNo}>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{rNo}</td>
+                      <tr key={rNo} style={{ cursor: 'pointer' }} onClick={() => onSelectRoomDrawer(room)}>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>{rNo}</td>
                         <td>Floor {fNo}</td>
                         <td>{rType}</td>
                         <td>{cap} Beds</td>
-                        <td style={{ fontFamily: 'var(--font-mono)', color: '#10b981' }}>₹{rent}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', color: '#10b981' }}>₹{rent?.toLocaleString('en-IN')}</td>
                         <td>
                           <span className={`badge ${isVacant ? 'badge-vacant' : isOccupied ? 'badge-occupied' : 'badge-maint'}`}>
                             {rStatus}
                           </span>
                         </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div style={{ display: 'inline-flex', gap: '6px' }}>
-                            <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => onSelectRoomDrawer(room)}>
-                              <Eye size={14} /> Details
-                            </button>
-                            <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenEditRoom(room)}>
-                              <Edit2 size={14} />
-                            </button>
-                            <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => onDeleteRoom(rNo)}>
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
+                        <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+                            onClick={() => onSelectRoomDrawer(room)}
+                          >
+                            <Eye size={13} /> Details
+                          </button>
                         </td>
                       </tr>
                     );

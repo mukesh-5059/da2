@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RoomAllocation, Student, Room } from '../../types';
-import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2 } from 'lucide-react';
+import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2, User, Building, GraduationCap, X, ExternalLink } from 'lucide-react';
 
 interface AllocationsTabProps {
   allocations: RoomAllocation[];
@@ -10,6 +10,7 @@ interface AllocationsTabProps {
   onCheckOut: (allocationId: string) => Promise<void>;
   onDeleteAllocation?: (allocationId: string) => Promise<void>;
   onSelectStudent?: (studentId: string) => void;
+  onSelectRoom?: (roomNo: string) => void;
 }
 
 export const AllocationsTab: React.FC<AllocationsTabProps> = ({
@@ -20,6 +21,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
   onCheckOut,
   onDeleteAllocation,
   onSelectStudent,
+  onSelectRoom,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingAlloc, setEditingAlloc] = useState<Partial<RoomAllocation> | null>(null);
@@ -72,7 +74,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
         <div>
           <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Room Allocation History</h2>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Master-Detail View (`ROOM_ALLOCATION` relation). Select an allocation record to inspect details or process check-out.
+            Student room assignments and checkout records (`ROOM_ALLOCATION` relation)
           </p>
         </div>
 
@@ -110,7 +112,16 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                     <div style={{ fontWeight: 600 }}>{studentName}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {sId}</div>
                   </td>
-                  <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700 }}>
+                  <td
+                    style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700, cursor: onSelectRoom ? 'pointer' : 'default' }}
+                    onClick={(e) => {
+                      if (onSelectRoom) {
+                        e.stopPropagation();
+                        onSelectRoom(alloc.RoomNo);
+                      }
+                    }}
+                    title="Inspect Room Details"
+                  >
                     {alloc.RoomNo}
                   </td>
                   <td>{alloc.AcademicYear} ({alloc.Semester})</td>
@@ -128,7 +139,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                     <button
                       className="btn btn-secondary"
-                      style={{ padding: '4px 12px', fontSize: '0.75rem', background: 'var(--accent-glow)', color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)' }}
+                      style={{ padding: '4px 12px', fontSize: '0.75rem' }}
                       onClick={() => setSelectedAllocId(allocId)}
                     >
                       <UserCheck size={13} /> View Details
@@ -148,90 +159,169 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
         const allocId = alloc.AllocationID || (alloc as any).allocation_id;
         const isActive = !alloc.CheckOutDate;
         const sId = alloc.StudentID || (alloc as any).student_id;
-        const studentName = alloc.StudentName || sId;
+        const sObj = students.find(s => (s.StudentID || (s as any).student_id) === sId);
+        
+        const rawFirstName = sObj?.FirstName?.trim() || '';
+        const rawLastName = sObj?.LastName?.trim() || '';
+        const fullNameFromObj = `${rawFirstName} ${rawLastName}`.trim();
+        const rawStudentName = alloc.StudentName?.trim() || '';
+
+        let realName: string | null = null;
+        if (fullNameFromObj && fullNameFromObj.toLowerCase() !== sId.toLowerCase() && fullNameFromObj.toLowerCase() !== `${sId} ${sId}`.toLowerCase()) {
+          realName = fullNameFromObj;
+        } else if (rawStudentName && rawStudentName.toLowerCase() !== sId.toLowerCase()) {
+          realName = rawStudentName;
+        }
+
         const checkOutDate = alloc.CheckOutDate || (alloc as any).check_out_date;
 
         return (
           <div className="modal-backdrop" onClick={() => setSelectedAllocId(null)}>
-            <div className="modal-card" style={{ maxWidth: '540px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-card" style={{ width: '680px', maxWidth: '95vw', padding: '28px' }} onClick={(e) => e.stopPropagation()}>
               {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px', marginBottom: '18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--accent-primary)' }}>
-                    {allocId}
-                  </span>
-                  {isActive ? (
-                    <span className="badge badge-vacant" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <CheckCircle size={12} /> Active Resident
-                    </span>
-                  ) : (
-                    <span className="badge" style={{ background: 'rgba(107, 114, 128, 0.2)', color: '#9ca3af' }}>
-                      Checked Out
-                    </span>
-                  )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                  <div style={{ background: 'var(--accent-glow)', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-accent)' }}>
+                    <UserCheck size={26} style={{ color: 'var(--accent-primary)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>
+                      Allocation Detail Record
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.25rem', color: 'var(--text-primary)' }}>
+                        {allocId}
+                      </span>
+                      {isActive ? (
+                        <span className="badge badge-vacant" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle size={12} /> Active Resident
+                        </span>
+                      ) : (
+                        <span className="badge" style={{ background: 'rgba(107, 114, 128, 0.2)', color: '#9ca3af' }}>
+                          Checked Out
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <button
                   onClick={() => setSelectedAllocId(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer', padding: '4px' }}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
                 >
-                  ✕
+                  <X size={20} />
                 </button>
               </div>
 
-              {/* Main Info Box: Resident & Room */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <div style={{ background: 'var(--bg-surface)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>
-                    Assigned Resident
+              {/* Main Info Grid: Resident & Room Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
+                {/* Assigned Resident Card */}
+                <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <User size={14} style={{ color: 'var(--accent-primary)' }} />
+                      Assigned Resident
+                    </div>
+                    {onSelectStudent && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => { setSelectedAllocId(null); onSelectStudent(sId); }}
+                        title="Open Student Profile"
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '0.75rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        Profile <ExternalLink size={12} />
+                      </button>
+                    )}
                   </div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem', marginBottom: '2px' }}>
-                    {studentName}
+
+                  <div>
+                    {realName ? (
+                      <>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem' }}>
+                          {realName}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                          ID: {sId}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {sId}
+                      </div>
+                    )}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                    ID: {sId}
-                  </div>
-                  {onSelectStudent && (
-                    <button
-                      onClick={() => { setSelectedAllocId(null); onSelectStudent(sId); }}
-                      style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
-                    >
-                      View Student Profile →
-                    </button>
-                  )}
                 </div>
 
-                <div style={{ background: 'var(--bg-surface)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '4px' }}>
-                    Assigned Room
+                {/* Assigned Room Card */}
+                <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Building size={14} style={{ color: 'var(--accent-primary)' }} />
+                      Assigned Room
+                    </div>
+                    {onSelectRoom && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => { setSelectedAllocId(null); onSelectRoom(alloc.RoomNo); }}
+                        title="Inspect Room Details"
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: '0.75rem',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        Inspect <ExternalLink size={12} />
+                      </button>
+                    )}
                   </div>
-                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word' }}>
-                    {alloc.RoomNo}
+
+                  <div>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
+                      {alloc.RoomNo}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {(alloc as any).HostelID || (alloc as any).hostel_id ? `Hostel: ${(alloc as any).HostelID || (alloc as any).hostel_id}` : 'Allocated Bed'}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Term & Dates Grid */}
-              <div style={{ background: 'var(--bg-surface)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)', marginBottom: '20px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: isActive ? '1fr 1fr' : '1fr 1fr 1fr', gap: '12px' }}>
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: isActive ? '1fr 1fr' : '1fr 1fr 1fr', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Academic Term</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <GraduationCap size={14} /> Academic Term
+                    </div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
                       {alloc.AcademicYear} ({alloc.Semester})
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Check-in Date</div>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Calendar size={14} /> Check-in Date
+                    </div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
                       {alloc.CheckInDate}
                     </div>
                   </div>
 
                   {!isActive && checkOutDate && (
                     <div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Check-out Date</div>
-                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#9ca3af', marginTop: '2px' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Clock size={14} /> Check-out Date
+                      </div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#9ca3af', marginTop: '4px' }}>
                         {checkOutDate}
                       </div>
                     </div>
@@ -240,7 +330,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
                 <button className="btn btn-secondary" onClick={() => setSelectedAllocId(null)}>
                   Close
                 </button>

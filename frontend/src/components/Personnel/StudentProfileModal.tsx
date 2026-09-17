@@ -65,8 +65,8 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
               <User size={30} style={{ color: 'var(--accent-primary)' }} />
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                Student 360° Profile
+              <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Student Profile
               </div>
               <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>
                 {fName} {lName}

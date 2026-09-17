@@ -178,7 +178,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                     <div style={{ display: 'inline-flex', gap: '6px' }}>
                       <button
                         className="btn btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--accent-glow)', color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)' }}
+                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                         onClick={() => setSelectedStudentId(sId)}
                       >
                         <Shield size={13} /> View Dossier
@@ -337,7 +337,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                 </button>
                 {onSelectStudent && (
                   <button className="btn btn-secondary" style={{ background: 'var(--accent-glow)', color: 'var(--accent-primary)' }} onClick={() => { setSelectedStudentId(null); onSelectStudent(student); }}>
-                    Open 360° Profile
+                    Open Profile View
                   </button>
                 )}
                 <button className="btn btn-secondary" onClick={() => { setSelectedStudentId(null); handleOpenEdit(student); }}>
