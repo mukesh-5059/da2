@@ -28,6 +28,8 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
   const [subTab, setSubTab] = useState<'bills' | 'transactions'>('bills');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'OVERDUE'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
   // Modals state
   const [showBillModal, setShowBillModal] = useState(false);
@@ -220,7 +222,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
             <div>
               <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Monthly Hostel & Mess Bills</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                Comprehensive bill records (`MONTHLY_BILL` relation). Click on any student to open their 360° profile.
+                Clean summary table (`MONTHLY_BILL` relation). Click any row or "View Details" to open full breakdown modal.
               </p>
             </div>
 
@@ -263,10 +265,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                   <th>Bill ID</th>
                   <th>Student Name</th>
                   <th>Period</th>
-                  <th>Room Rent</th>
-                  <th>Mess Fee</th>
                   <th>Total Amount</th>
-                  <th>Due Date</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
@@ -274,7 +273,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
               <tbody>
                 {filteredBills.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No financial billing records match the selected status or search filter.
                     </td>
                   </tr>
@@ -284,71 +283,63 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                     const isPaid = status === 'PAID';
                     const isOverdue = status === 'OVERDUE';
                     const sId = b.StudentID || (b as any).student_id;
+                    const bId = b.BillID || (b as any).bill_id;
                     const name = `${b.FirstName || ''} ${b.LastName || ''}`.trim() || b.StudentName || sId;
                     const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     const mStr = monthNames[b.BillingMonth || (b as any).billing_month] || `M${b.BillingMonth}`;
                     const yr = b.BillingYear || (b as any).billing_year;
 
                     return (
-                      <tr key={b.BillID || (b as any).bill_id}>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-                          {b.BillID || (b as any).bill_id}
+                      <tr key={bId} style={{ cursor: 'pointer' }} onClick={() => setSelectedBillId(bId)}>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                          {bId}
                         </td>
                         <td>
-                          <button
-                            onClick={() => onSelectStudent(sId)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--accent-primary)',
-                              fontWeight: 600,
-                              padding: 0,
-                              cursor: 'pointer',
-                              textAlign: 'left',
-                              textDecoration: 'underline',
-                            }}
-                          >
-                            {name}
-                          </button>
+                          <div style={{ fontWeight: 600 }}>{name}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {sId}</div>
                         </td>
                         <td>
                           <strong>{mStr} {yr}</strong>
                         </td>
-                        <td>₹{b.RoomRentCharges || (b as any).room_rent_charges || 0}</td>
-                        <td>₹{b.MessCharges || (b as any).mess_charges || 0}</td>
                         <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isPaid ? '#10b981' : '#f87171' }}>
-                          ₹{b.TotalAmount || (b as any).total_amount || 0}
+                          ₹{(b.TotalAmount || (b as any).total_amount || 0).toLocaleString('en-IN')}
                         </td>
-                        <td>{b.DueDate || (b as any).due_date}</td>
                         <td>
                           <span className={`badge ${isPaid ? 'badge-vacant' : isOverdue ? 'badge-maintenance' : 'badge-occupied'}`}>
                             {status}
                           </span>
                         </td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--accent-glow)', color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)' }}
+                              onClick={() => setSelectedBillId(bId)}
+                            >
+                              <ArrowUpRight size={13} /> View Details
+                            </button>
                             <button
                               className="btn btn-secondary"
                               style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                               onClick={() => handleOpenEditBill(b)}
                               title="Edit Bill Charges"
                             >
-                              <Edit2 size={13} /> Edit
+                              <Edit2 size={13} />
                             </button>
                             {!isPaid && (
                               <button
                                 className="btn btn-secondary"
-                                style={{ padding: '4px 10px', fontSize: '0.75rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
+                                style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.3)' }}
                                 onClick={() => handleOpenPay(b)}
+                                title="Record Payment"
                               >
-                                Record Pay
+                                Pay
                               </button>
                             )}
                             <button
-                              className="btn btn-secondary"
-                              style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#f87171' }}
-                              onClick={() => onDeleteBill(b.BillID || (b as any).bill_id)}
+                              className="btn btn-danger"
+                              style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                              onClick={() => onDeleteBill(bId)}
                               title="Delete Bill"
                             >
                               <Trash2 size={13} />
@@ -370,7 +361,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
           <div style={{ marginBottom: '20px' }}>
             <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Payment Ledger & Audit Log</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Completed transaction ledger records (`PAYMENT_TRANSACTION` relation)
+              Clean transaction table (`PAYMENT_TRANSACTION` relation). Click row or "View Details" to open audit modal.
             </p>
           </div>
 
@@ -379,10 +370,8 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
               <thead>
                 <tr>
                   <th>Transaction ID</th>
-                  <th>Bill ID</th>
                   <th>Student Name</th>
                   <th>Payment Mode</th>
-                  <th>Ref Number</th>
                   <th>Amount Paid</th>
                   <th>Payment Date</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
@@ -391,7 +380,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
               <tbody>
                 {transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No payment transactions recorded yet.
                     </td>
                   </tr>
@@ -399,58 +388,45 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                   transactions.map((t) => {
                     const tId = t.PaymentID || (t as any).payment_id;
                     const sId = t.StudentID || (t as any).student_id;
-                    const name = `${t.FirstName || ''} ${t.LastName || ''}`.trim() || sId;
+                    const name = `${t.FirstName || ''} ${t.LastName || ''}`.trim() || sId || 'Student';
+
                     return (
-                      <tr key={tId}>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                      <tr key={tId} style={{ cursor: 'pointer' }} onClick={() => setSelectedTransactionId(tId)}>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
                           {tId}
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)' }}>{t.BillID || (t as any).bill_id}</td>
                         <td>
-                          {sId ? (
-                            <button
-                              onClick={() => onSelectStudent(sId)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: 'var(--accent-primary)',
-                                fontWeight: 600,
-                                padding: 0,
-                                cursor: 'pointer',
-                                textAlign: 'left',
-                                textDecoration: 'underline',
-                              }}
-                            >
-                              {name}
-                            </button>
-                          ) : (
-                            <span>{name}</span>
-                          )}
+                          <div style={{ fontWeight: 600 }}>{name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bill: {t.BillID || (t as any).bill_id}</div>
                         </td>
                         <td>
                           <span className="badge badge-vacant">{t.PaymentMode || (t as any).payment_mode}</span>
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                          {t.TransactionReference || (t as any).transaction_reference}
-                        </td>
                         <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#10b981' }}>
-                          ₹{t.AmountPaid || (t as any).amount_paid}
+                          ₹{(t.AmountPaid || (t as any).amount_paid || 0).toLocaleString('en-IN')}
                         </td>
                         <td>{t.PaymentDate || (t as any).payment_date}</td>
-                        <td style={{ textAlign: 'right' }}>
+                        <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'var(--accent-glow)', color: 'var(--accent-primary)', borderColor: 'var(--accent-primary)' }}
+                              onClick={() => setSelectedTransactionId(tId)}
+                            >
+                              <ArrowUpRight size={13} /> View Details
+                            </button>
                             <button
                               className="btn btn-secondary"
                               style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                               onClick={() => handleOpenEditPayment(t)}
                               title="Edit Transaction"
                             >
-                              <Edit2 size={13} /> Edit
+                              <Edit2 size={13} />
                             </button>
                             {onDeletePaymentTransaction && (
                               <button
-                                className="btn btn-secondary"
-                                style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#f87171' }}
+                                className="btn btn-danger"
+                                style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                                 onClick={() => onDeletePaymentTransaction(tId)}
                                 title="Delete Transaction"
                               >
@@ -468,6 +444,193 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Bill Detail Popup Modal */}
+      {selectedBillId && (() => {
+        const b = bills.find(item => (item.BillID || (item as any).bill_id) === selectedBillId);
+        if (!b) return null;
+        const bId = b.BillID || (b as any).bill_id;
+        const status = b.PaymentStatus || (b as any).payment_status || 'PENDING';
+        const isPaid = status === 'PAID';
+        const isOverdue = status === 'OVERDUE';
+        const sId = b.StudentID || (b as any).student_id;
+        const name = `${b.FirstName || ''} ${b.LastName || ''}`.trim() || b.StudentName || sId;
+        const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mStr = monthNames[b.BillingMonth || (b as any).billing_month] || `M${b.BillingMonth}`;
+        const yr = b.BillingYear || (b as any).billing_year;
+
+        return (
+          <div className="modal-backdrop" onClick={() => setSelectedBillId(null)}>
+            <div className="modal-card" style={{ maxWidth: '580px' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                      {bId}
+                    </span>
+                    <span className={`badge ${isPaid ? 'badge-vacant' : isOverdue ? 'badge-maintenance' : 'badge-occupied'}`}>
+                      {status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Statement for <strong>{mStr} {yr}</strong>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Total Billed</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: isPaid ? '#10b981' : '#f87171', fontFamily: 'var(--font-mono)' }}>
+                    ₹{(b.TotalAmount || (b as any).total_amount || 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+
+              {/* Student Link Box */}
+              <div style={{ background: 'var(--bg-surface)', padding: '12px 16px', borderRadius: '10px', border: '1px solid var(--border-subtle)', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Assigned Student</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>ID: {sId}</div>
+                </div>
+                <button
+                  className="btn btn-secondary"
+                  style={{ padding: '6px 12px', fontSize: '0.8rem' }}
+                  onClick={() => { setSelectedBillId(null); onSelectStudent(sId); }}
+                >
+                  360° Student Profile
+                </button>
+              </div>
+
+              {/* Itemized Charges */}
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                Itemized Line Charges
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Room Rent</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                    ₹{b.RoomRentCharges || (b as any).room_rent_charges || 0}
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mess Fee</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                    ₹{b.MessCharges || (b as any).mess_charges || 0}
+                  </div>
+                </div>
+                <div style={{ background: 'var(--bg-card)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Other Charges</div>
+                  <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
+                    ₹{b.OtherCharges || (b as any).other_charges || 0}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-surface)', borderRadius: '8px', border: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Due Date:</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: isOverdue ? '#ef4444' : 'var(--text-primary)' }}>
+                  {b.DueDate || (b as any).due_date}
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+                <button className="btn btn-secondary" onClick={() => setSelectedBillId(null)}>
+                  Close
+                </button>
+                <button className="btn btn-secondary" onClick={() => { setSelectedBillId(null); handleOpenEditBill(b); }}>
+                  <Edit2 size={14} /> Edit Charges
+                </button>
+                {!isPaid && (
+                  <button className="btn btn-primary" style={{ background: '#10b981' }} onClick={() => { setSelectedBillId(null); handleOpenPay(b); }}>
+                    <CreditCard size={14} /> Record Payment
+                  </button>
+                )}
+                <button className="btn btn-danger" onClick={() => { setSelectedBillId(null); onDeleteBill(bId); }}>
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Payment Transaction Detail Popup Modal */}
+      {selectedTransactionId && (() => {
+        const t = transactions.find(item => (item.PaymentID || (item as any).payment_id) === selectedTransactionId);
+        if (!t) return null;
+        const tId = t.PaymentID || (t as any).payment_id;
+        const sId = t.StudentID || (t as any).student_id;
+        const name = `${t.FirstName || ''} ${t.LastName || ''}`.trim() || sId || 'Student';
+
+        return (
+          <div className="modal-backdrop" onClick={() => setSelectedTransactionId(null)}>
+            <div className="modal-card" style={{ maxWidth: '540px' }} onClick={(e) => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                      {tId}
+                    </span>
+                    <span className="badge badge-vacant">
+                      {t.PaymentMode || (t as any).payment_mode}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Target Bill ID: <strong style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{t.BillID || (t as any).bill_id}</strong>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Amount Settled</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#10b981', fontFamily: 'var(--font-mono)' }}>
+                    ₹{(t.AmountPaid || (t as any).amount_paid || 0).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payer Resident:</span>
+                  <button
+                    onClick={() => { setSelectedTransactionId(null); sId && onSelectStudent(sId); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+                  >
+                    {name} ({sId})
+                  </button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Transaction Reference Code:</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {t.TransactionReference || (t as any).transaction_reference || 'N/A'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payment Date:</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {t.PaymentDate || (t as any).payment_date}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+                <button className="btn btn-secondary" onClick={() => setSelectedTransactionId(null)}>
+                  Close
+                </button>
+                <button className="btn btn-secondary" onClick={() => { setSelectedTransactionId(null); handleOpenEditPayment(t); }}>
+                  <Edit2 size={14} /> Edit Record
+                </button>
+                {onDeletePaymentTransaction && (
+                  <button className="btn btn-danger" onClick={() => { setSelectedTransactionId(null); onDeletePaymentTransaction(tId); }}>
+                    <Trash2 size={14} /> Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Generate Bill Modal */}
       {showBillModal && (
