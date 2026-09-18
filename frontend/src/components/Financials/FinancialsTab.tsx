@@ -295,8 +295,17 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                           {bId}
                         </td>
                         <td>
-                          <div style={{ fontWeight: 600 }}>{name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {sId}</div>
+                          <div
+                            style={{ fontWeight: 600, color: 'var(--accent-primary)', cursor: 'pointer' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectStudent(sId);
+                            }}
+                            title="Click to view Student Profile"
+                          >
+                            {name}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>ID: {sId}</div>
                         </td>
                         <td>
                           <strong>{mStr} {yr}</strong>

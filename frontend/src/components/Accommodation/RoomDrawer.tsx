@@ -55,14 +55,15 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <>
+      <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" style={{ width: '680px', maxWidth: '95vw', padding: '28px' }} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '14px', marginBottom: '18px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
-                {isEditing ? 'Edit Room Settings' : 'Room Inspector'}
+                Room Inspector
               </span>
               <span className={getStatusBadgeClass(room.Status)}>
                 {room.Status}
@@ -80,69 +81,8 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
           </button>
         </div>
 
-        {isEditing ? (
-          /* Edit Form */
-          <form onSubmit={handleSaveEdit}>
-            <div className="form-group">
-              <label>Room Status</label>
-              <select
-                className="form-select"
-                value={editFormData.Status || room.Status}
-                onChange={(e) => setEditFormData({ ...editFormData, Status: e.target.value as any })}
-              >
-                <option value="Vacant">Vacant</option>
-                <option value="Occupied">Occupied</option>
-                <option value="UnderMaintenance">Under Maintenance</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="form-group">
-                <label>Floor Number</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={editFormData.FloorNo ?? room.FloorNo}
-                  onChange={(e) => setEditFormData({ ...editFormData, FloorNo: parseInt(e.target.value) || 1 })}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Room Rent (₹ / sem)</label>
-                <input
-                  type="number"
-                  className="form-input"
-                  value={editFormData.RoomRent ?? room.RoomRent ?? 0}
-                  onChange={(e) => setEditFormData({ ...editFormData, RoomRent: parseFloat(e.target.value) || 0 })}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Room Category / Type</label>
-              <input
-                type="text"
-                className="form-input"
-                value={editFormData.Type || room.Type}
-                onChange={(e) => setEditFormData({ ...editFormData, Type: e.target.value })}
-                required
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', marginTop: '20px' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Save Room Changes
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* Normal Inspector View */
-          <>
+        {/* Normal Inspector View */}
+        <>
             {/* Status Switcher */}
             <div style={{ marginBottom: '20px', background: 'var(--bg-surface)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '8px' }}>
@@ -217,7 +157,20 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
                         <div>
                           {hasRealName ? (
                             <>
-                              <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                              <div
+                                style={{
+                                  fontWeight: 700,
+                                  color: 'var(--accent-primary)',
+                                  fontSize: '0.95rem',
+                                  cursor: onSelectStudent ? 'pointer' : 'default',
+                                }}
+                                onClick={() => {
+                                  if (onSelectStudent) {
+                                    onSelectStudent(alloc.StudentID);
+                                  }
+                                }}
+                                title="Click to open Student Profile"
+                              >
                                 {rawName}
                               </div>
                               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
@@ -225,7 +178,21 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
                               </div>
                             </>
                           ) : (
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'var(--font-mono)' }}>
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                color: 'var(--accent-primary)',
+                                fontSize: '0.95rem',
+                                fontFamily: 'var(--font-mono)',
+                                cursor: onSelectStudent ? 'pointer' : 'default',
+                              }}
+                              onClick={() => {
+                                if (onSelectStudent) {
+                                  onSelectStudent(alloc.StudentID);
+                                }
+                              }}
+                              title="Click to open Student Profile"
+                            >
                               {sId} • {alloc.Department || 'Engineering'}
                             </div>
                           )}
@@ -233,19 +200,6 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
                             <Calendar size={12} /> Checked-in: {alloc.CheckInDate} ({alloc.Semester} {alloc.AcademicYear})
                           </div>
                         </div>
-
-                        {onSelectStudent && (
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                            onClick={() => {
-                              onClose();
-                              onSelectStudent(alloc.StudentID);
-                            }}
-                          >
-                            Profile View
-                          </button>
-                        )}
                       </div>
                     );
                   })}
@@ -262,7 +216,6 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
                 className="btn btn-secondary"
                 onClick={() => {
                   if (onEditRoom) {
-                    onClose();
                     onEditRoom(room);
                   } else {
                     setIsEditing(true);
@@ -284,9 +237,83 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
               )}
             </div>
           </>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* Floating Edit Room Overlay */}
+      {isEditing && (
+        <div className="modal-backdrop" style={{ zIndex: 1100 }} onClick={() => setIsEditing(false)}>
+          <div className="modal-card" style={{ width: '500px', maxWidth: '95vw', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                Edit Room Settings ({room.RoomNo})
+              </h3>
+              <button onClick={() => setIsEditing(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit}>
+              <div className="form-group">
+                <label>Room Status</label>
+                <select
+                  className="form-select"
+                  value={editFormData.Status || room.Status}
+                  onChange={(e) => setEditFormData({ ...editFormData, Status: e.target.value as any })}
+                >
+                  <option value="Vacant">Vacant</option>
+                  <option value="Occupied">Occupied</option>
+                  <option value="UnderMaintenance">Under Maintenance</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Floor Number</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={editFormData.FloorNo ?? room.FloorNo}
+                    onChange={(e) => setEditFormData({ ...editFormData, FloorNo: parseInt(e.target.value) || 1 })}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Room Rent (₹ / sem)</label>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={editFormData.RoomRent ?? room.RoomRent ?? 0}
+                    onChange={(e) => setEditFormData({ ...editFormData, RoomRent: parseFloat(e.target.value) || 0 })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Room Category / Type</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={editFormData.Type || room.Type}
+                  onChange={(e) => setEditFormData({ ...editFormData, Type: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px', marginTop: '20px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Room Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
-

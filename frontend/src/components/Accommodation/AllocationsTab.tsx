@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RoomAllocation, Student, Room } from '../../types';
-import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2, User, Building, GraduationCap, X, ExternalLink } from 'lucide-react';
+import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2, User, Building, GraduationCap, X } from 'lucide-react';
 
 interface AllocationsTabProps {
   allocations: RoomAllocation[];
@@ -217,33 +217,29 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '20px' }}>
                 {/* Assigned Resident Card */}
                 <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <User size={14} style={{ color: 'var(--accent-primary)' }} />
-                      Assigned Resident
-                    </div>
-                    {onSelectStudent && (
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => { setSelectedAllocId(null); onSelectStudent(sId); }}
-                        title="Open Student Profile"
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '0.75rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        Profile <ExternalLink size={12} />
-                      </button>
-                    )}
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <User size={14} style={{ color: 'var(--accent-primary)' }} />
+                    Assigned Resident
                   </div>
 
                   <div>
                     {realName ? (
                       <>
-                        <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem' }}>
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            color: 'var(--accent-primary)',
+                            fontSize: '1.05rem',
+                            cursor: onSelectStudent ? 'pointer' : 'default',
+                          }}
+                          onClick={() => {
+                            if (onSelectStudent) {
+                              setSelectedAllocId(null);
+                              onSelectStudent(sId);
+                            }
+                          }}
+                          title="Click to view Student Profile"
+                        >
                           {realName}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '2px' }}>
@@ -251,7 +247,22 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                         </div>
                       </>
                     ) : (
-                      <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                      <div
+                        style={{
+                          fontSize: '1.05rem',
+                          fontWeight: 700,
+                          color: 'var(--accent-primary)',
+                          fontFamily: 'var(--font-mono)',
+                          cursor: onSelectStudent ? 'pointer' : 'default',
+                        }}
+                        onClick={() => {
+                          if (onSelectStudent) {
+                            setSelectedAllocId(null);
+                            onSelectStudent(sId);
+                          }
+                        }}
+                        title="Click to view Student Profile"
+                      >
                         {sId}
                       </div>
                     )}
@@ -260,32 +271,29 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
 
                 {/* Assigned Room Card */}
                 <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Building size={14} style={{ color: 'var(--accent-primary)' }} />
-                      Assigned Room
-                    </div>
-                    {onSelectRoom && (
-                      <button
-                        className="btn btn-secondary"
-                        onClick={() => { setSelectedAllocId(null); onSelectRoom(alloc.RoomNo); }}
-                        title="Inspect Room Details"
-                        style={{
-                          padding: '4px 10px',
-                          fontSize: '0.75rem',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        Inspect <ExternalLink size={12} />
-                      </button>
-                    )}
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Building size={14} style={{ color: 'var(--accent-primary)' }} />
+                    Assigned Room
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>
+                    <div
+                      style={{
+                        fontSize: '1.05rem',
+                        fontWeight: 800,
+                        color: 'var(--accent-primary)',
+                        fontFamily: 'var(--font-mono)',
+                        wordBreak: 'break-all',
+                        cursor: onSelectRoom ? 'pointer' : 'default',
+                      }}
+                      onClick={() => {
+                        if (onSelectRoom) {
+                          setSelectedAllocId(null);
+                          onSelectRoom(alloc.RoomNo);
+                        }
+                      }}
+                      title="Click to inspect Room Details"
+                    >
                       {alloc.RoomNo}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -334,7 +342,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                 <button className="btn btn-secondary" onClick={() => setSelectedAllocId(null)}>
                   Close
                 </button>
-                <button className="btn btn-secondary" onClick={() => { setSelectedAllocId(null); handleOpenEdit(alloc); }}>
+                <button className="btn btn-secondary" onClick={() => { handleOpenEdit(alloc); }}>
                   <Edit2 size={14} /> Edit
                 </button>
                 {isActive && (

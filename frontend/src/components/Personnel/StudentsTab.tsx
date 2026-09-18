@@ -19,7 +19,6 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Partial<Student> | null>(null);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,9 +93,6 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
   const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
   const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const activeStudent = filteredStudents.find(s => (s.StudentID || (s as any).student_id) === selectedStudentId) || paginatedStudents[0];
-  const activeStudentId = activeStudent ? (activeStudent.StudentID || (activeStudent as any).student_id) : '';
-
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
@@ -136,7 +132,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
               <th>Student ID</th>
               <th>Full Name</th>
               <th>Department</th>
-              <th>Blood Group</th>
+              <th>Contact Number</th>
               <th>Status</th>
               <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
@@ -147,15 +143,15 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
               const fName = student.FirstName || (student as any).name || (student as any).FirstName || '';
               const lName = student.LastName || '';
               const dept = student.Department || (student as any).department || 'CSE';
-              const bg = student.BloodGroup || (student as any).blood_group || 'O+';
+              const phone = student.Phone || (student as any).phone || '';
 
               return (
-                <tr key={sId} style={{ cursor: 'pointer' }} onClick={() => setSelectedStudentId(sId)}>
+                <tr key={sId} style={{ cursor: 'pointer' }} onClick={() => onSelectStudent?.(student)}>
                   <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
                     {sId}
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{fName} {lName}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fName} {lName}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.Email || (student as any).email || ''}</div>
                   </td>
                   <td>
@@ -165,8 +161,9 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                     </span>
                   </td>
                   <td>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#ef4444', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                      <Heart size={12} /> {bg}
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <Phone size={13} style={{ color: 'var(--text-muted)' }} />
+                      {phone || 'N/A'}
                     </span>
                   </td>
                   <td>
@@ -175,31 +172,13 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                    <div style={{ display: 'inline-flex', gap: '6px' }}>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                        onClick={() => setSelectedStudentId(sId)}
-                      >
-                        <Shield size={13} /> View Dossier
-                      </button>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                        onClick={() => handleOpenEdit(student)}
-                        title="Edit Resident"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                      <button
-                        className="btn btn-danger"
-                        style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                        onClick={() => onDeleteStudent(sId)}
-                        title="Delete Resident"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+                      onClick={() => onSelectStudent?.(student)}
+                    >
+                      View Profile
+                    </button>
                   </td>
                 </tr>
               );
@@ -235,122 +214,6 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
         )}
       </div>
       )}
-
-      {/* Student Detail Popup Modal */}
-      {selectedStudentId && (() => {
-        const student = students.find(s => (s.StudentID || (s as any).student_id) === selectedStudentId);
-        if (!student) return null;
-        const sId = student.StudentID || (student as any).student_id;
-        const fName = student.FirstName || (student as any).name || (student as any).FirstName || '';
-        const lName = student.LastName || '';
-        const gender = student.Gender || (student as any).gender || 'M';
-        const dob = student.DOB || (student as any).dob || 'N/A';
-        const dept = student.Department || (student as any).department || 'CSE';
-        const email = student.Email || (student as any).email;
-        const phone = student.Phone || (student as any).phone;
-        const bg = student.BloodGroup || (student as any).blood_group || 'O+';
-        const admDate = student.AdmissionDate || (student as any).admission_date;
-
-        return (
-          <div className="modal-backdrop" onClick={() => setSelectedStudentId(null)}>
-            <div className="modal-card" style={{ maxWidth: '620px' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px', marginBottom: '20px' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '1.2rem', color: 'var(--accent-primary)' }}>
-                      {sId}
-                    </span>
-                    <span className={`badge ${student.IsActive !== 0 ? 'badge-vacant' : 'badge-maint'}`}>
-                      {student.IsActive !== 0 ? 'Active Resident' : 'Inactive'}
-                    </span>
-                  </div>
-                  <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>{fName} {lName}</h3>
-                </div>
-
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => { setSelectedStudentId(null); onViewGuardians(student); }}
-                  style={{ border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)' }}
-                >
-                  <Shield size={15} /> Emergency Guardians
-                </button>
-              </div>
-
-              {/* Quick Stats Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-                <div style={{ background: 'var(--bg-surface)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Department</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <GraduationCap size={15} style={{ color: 'var(--accent-primary)' }} />
-                    {dept}
-                  </div>
-                </div>
-
-                <div style={{ background: 'var(--bg-surface)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Blood Group</div>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#ef4444', fontFamily: 'var(--font-mono)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Heart size={15} />
-                    {bg}
-                  </div>
-                </div>
-
-                <div style={{ background: 'var(--bg-surface)', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Gender / DOB</div>
-                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-                    {gender === 'M' || gender === 'Male' ? 'Male' : 'Female'} • {dob}
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Info Box */}
-              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-subtle)', marginBottom: '24px' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                  Contact & Enrollment Metadata
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Mail size={14} /> Email Address
-                    </span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{email || 'N/A'}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Phone size={14} /> Phone Number
-                    </span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{phone || 'N/A'}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Admission Date</span>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{admDate || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
-                <button className="btn btn-secondary" onClick={() => setSelectedStudentId(null)}>
-                  Close
-                </button>
-                {onSelectStudent && (
-                  <button className="btn btn-secondary" style={{ background: 'var(--accent-glow)', color: 'var(--accent-primary)' }} onClick={() => { setSelectedStudentId(null); onSelectStudent(student); }}>
-                    Open Profile View
-                  </button>
-                )}
-                <button className="btn btn-secondary" onClick={() => { setSelectedStudentId(null); handleOpenEdit(student); }}>
-                  <Edit2 size={15} /> Edit Resident
-                </button>
-                <button className="btn btn-danger" onClick={() => { setSelectedStudentId(null); onDeleteStudent(sId); }}>
-                  <Trash2 size={15} /> Delete Student
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {showModal && (
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>

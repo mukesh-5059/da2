@@ -89,15 +89,23 @@ export const StaffTab: React.FC<StaffTabProps> = ({
               <th>Cuisine / Assignment</th>
               <th>Phone</th>
               <th>Salary / Mo</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {staff.map((st) => (
               <tr key={st.StaffID}>
-                <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{st.StaffID}</td>
                 <td>
-                  <div style={{ fontWeight: 600 }}>{st.FirstName} {st.LastName}</div>
+                  <div
+                    style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', cursor: 'pointer' }}
+                    onClick={() => handleOpenEdit(st)}
+                  >
+                    {st.StaffID}
+                  </div>
+                </td>
+                <td>
+                  <div style={{ fontWeight: 600 }}>
+                    {st.FirstName} {st.LastName}
+                  </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Joined: {st.JoinDate}</div>
                 </td>
                 <td>
@@ -132,16 +140,6 @@ export const StaffTab: React.FC<StaffTabProps> = ({
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>{st.Phone}</td>
                 <td style={{ fontFamily: 'var(--font-mono)', color: '#10b981', fontWeight: 600 }}>
                   ₹{st.Salary.toLocaleString('en-IN')}
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <div style={{ display: 'inline-flex', gap: '6px' }}>
-                    <button className="btn btn-secondary" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => handleOpenEdit(st)}>
-                      <Edit2 size={13} />
-                    </button>
-                    <button className="btn btn-danger" style={{ padding: '4px 8px', fontSize: '0.75rem' }} onClick={() => onDeleteStaff(st.StaffID)}>
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
                 </td>
               </tr>
             ))}
@@ -261,13 +259,31 @@ export const StaffTab: React.FC<StaffTabProps> = ({
                 </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingStaff ? 'Save Profile' : 'Add Staff Member'}
-                </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+                <div>
+                  {editingStaff && (
+                    <button 
+                      type="button" 
+                      className="btn btn-danger" 
+                      onClick={() => {
+                        if (window.confirm(`Are you sure you want to delete ${formData.FirstName}?`)) {
+                          setShowModal(false);
+                          if (formData.StaffID) onDeleteStaff(formData.StaffID);
+                        }
+                      }}
+                    >
+                      Delete Staff
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    {editingStaff ? 'Save Profile' : 'Add Staff Member'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

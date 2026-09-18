@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Student, Guardian, RoomAllocation, MessEnrollment, MonthlyBill, PaymentTransaction } from '../../types';
 import { api } from '../../services/api';
-import { X, User, Shield, Bed, Utensils, CreditCard, Mail, Phone, Calendar, MapPin, GraduationCap, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
+import { X, User, Shield, Bed, Utensils, CreditCard, Mail, Phone, Calendar, MapPin, GraduationCap, CheckCircle, AlertTriangle, Clock, Trash2, Edit2, Plus } from 'lucide-react';
 
 interface StudentProfileModalProps {
   student: Student | null;
   onClose: () => void;
+  onEditStudent?: (student: Student) => void;
+  onDeleteStudent?: (id: string) => void;
+  onSelectRoom?: (roomNo: string) => void;
 }
 
-export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ student, onClose }) => {
+export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ student, onClose, onEditStudent, onDeleteStudent, onSelectRoom }) => {
   const [activeTab, setActiveTab] = useState<'housing' | 'guardians' | 'mess' | 'financials'>('housing');
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [allocations, setAllocations] = useState<RoomAllocation[]>([]);
@@ -16,6 +19,24 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
   const [bills, setBills] = useState<MonthlyBill[]>([]);
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [showGuardianForm, setShowGuardianForm] = useState(false);
+  const [editingGuardian, setEditingGuardian] = useState<Guardian | null>(null);
+  const [guardianFormData, setGuardianFormData] = useState<Partial<Guardian>>({
+    GuardianID: '',
+    GuardianName: '',
+    Relationship: 'Father',
+    Phone: '',
+    Email: '',
+    Address: '',
+  });
+
+  const loadGuardians = () => {
+    if (student) {
+      const sId = student.StudentID || (student as any).student_id;
+      api.getGuardians(sId).then(setGuardians).catch(console.error);
+    }
+  };
 
   useEffect(() => {
     if (student) {
@@ -42,6 +63,72 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
 
   if (!student) return null;
 
+  const handleOpenAddGuardian = () => {
+    setEditingGuardian(null);
+    setGuardianFormData({
+      GuardianID: `G-${Date.now().toString().slice(-4)}`,
+      GuardianName: '',
+      Relationship: 'Father',
+      Phone: '',
+      Email: '',
+      Address: '',
+    });
+    setShowGuardianForm(true);
+  };
+
+  const handleOpenEditGuardian = (g: Guardian) => {
+    setEditingGuardian(g);
+    const gName = g.GuardianName || ((g as any).FirstName ? `${(g as any).FirstName} ${(g as any).LastName || ''}`.trim() : '');
+    const rel = g.Relationship || (g as any).Relation || 'Father';
+    setGuardianFormData({
+      GuardianID: g.GuardianID,
+      GuardianName: gName,
+      Relationship: rel,
+      Phone: g.Phone || '',
+      Email: g.Email || '',
+      Address: g.Address || '',
+    });
+    setShowGuardianForm(true);
+  };
+
+  const handleSubmitGuardian = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const gNameParts = (guardianFormData.GuardianName || '').trim().split(' ');
+    const fName = gNameParts[0] || 'Guardian';
+    const lName = gNameParts.slice(1).join(' ') || '';
+    const payload: any = {
+      ...guardianFormData,
+      StudentID: student.StudentID || (student as any).student_id,
+      FirstName: fName,
+      LastName: lName,
+      Relation: guardianFormData.Relationship || 'Father',
+    };
+    try {
+      if (editingGuardian) {
+        await api.updateGuardian(editingGuardian.GuardianID, payload);
+      } else {
+        await api.createGuardian({
+          ...payload,
+          GuardianID: guardianFormData.GuardianID || `G-${Date.now().toString().slice(-4)}`,
+        });
+      }
+      setShowGuardianForm(false);
+      loadGuardians();
+    } catch (err: any) {
+      alert(err.message || 'Failed to save guardian');
+    }
+  };
+
+  const handleDeleteGuardian = async (guardianId: string) => {
+    if (!window.confirm(`Delete guardian record ID ${guardianId}?`)) return;
+    try {
+      await api.deleteGuardian(guardianId);
+      loadGuardians();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete guardian');
+    }
+  };
+
   const sId = student.StudentID || (student as any).student_id;
   const fName = student.FirstName || (student as any).name || (student as any).FirstName || '';
   const lName = student.LastName || '';
@@ -52,7 +139,8 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
   const activeAlloc = allocations.find((a) => !a.CheckOutDate);
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <>
+      <div className="modal-backdrop" onClick={onClose}>
       <div
         className="modal-card"
         style={{ width: '700px', maxWidth: '95vw', padding: '28px' }}
@@ -125,7 +213,25 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
             {activeAlloc ? (
               <div style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-medium)', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <div style={{ fontSize: '1.1rem', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                  <div
+                    style={{
+                      fontSize: '1.1rem',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 700,
+                      color: 'var(--accent-primary)',
+                      cursor: onSelectRoom ? 'pointer' : 'default',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    onClick={() => {
+                      if (onSelectRoom) {
+                        onClose();
+                        onSelectRoom(activeAlloc.RoomNo);
+                      }
+                    }}
+                    title="Click to inspect Room Details"
+                  >
                     Room {activeAlloc.RoomNo}
                   </div>
                   <span className="badge badge-vacant">Active Resident</span>
@@ -144,8 +250,27 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
             <h4 style={{ fontSize: '0.95rem', margin: '16px 0 8px', color: 'var(--text-secondary)' }}>Allocation History</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {allocations.map((a) => (
-                <div key={a.AllocationID} style={{ background: 'var(--bg-surface)', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Room <strong>{a.RoomNo}</strong> ({a.AcademicYear})</span>
+                <div key={a.AllocationID} style={{ background: 'var(--bg-surface)', padding: '10px 14px', borderRadius: '8px', fontSize: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>
+                    Room{' '}
+                    <strong
+                      style={{
+                        color: 'var(--accent-primary)',
+                        cursor: onSelectRoom ? 'pointer' : 'default',
+                        fontFamily: 'var(--font-mono)',
+                      }}
+                      onClick={() => {
+                        if (onSelectRoom) {
+                          onClose();
+                          onSelectRoom(a.RoomNo);
+                        }
+                      }}
+                      title="Inspect Room Details"
+                    >
+                      {a.RoomNo}
+                    </strong>{' '}
+                    ({a.AcademicYear})
+                  </span>
                   <span style={{ color: 'var(--text-muted)' }}>In: {a.CheckInDate} {a.CheckOutDate ? `| Out: ${a.CheckOutDate}` : ''}</span>
                 </div>
               ))}
@@ -156,7 +281,13 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
         {/* Tab 2: Guardians */}
         {activeTab === 'guardians' && (
           <div>
-            <h4 style={{ fontSize: '1rem', marginBottom: '12px', color: 'var(--text-primary)' }}>Emergency Guardians & Family Contacts</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)', margin: 0 }}>Emergency Guardians & Family Contacts</h4>
+              <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={handleOpenAddGuardian}>
+                <Plus size={14} /> Add Guardian
+              </button>
+            </div>
+            
             {guardians.length === 0 ? (
               <div style={{ background: 'var(--bg-card)', padding: '16px', borderRadius: '10px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 No guardian contacts registered.
@@ -164,8 +295,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {guardians.map((g) => (
-                  <div key={g.GuardianID || (g as any).guardian_id} style={{ background: 'var(--bg-card)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <div key={g.GuardianID || (g as any).guardian_id} style={{ background: 'var(--bg-card)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)', position: 'relative' }}>
+                    <div style={{ position: 'absolute', top: '14px', right: '14px', display: 'flex', gap: '6px' }}>
+                      <button onClick={() => handleOpenEditGuardian(g)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }} title="Edit"><Edit2 size={15} /></button>
+                      <button onClick={() => handleDeleteGuardian(g.GuardianID || (g as any).guardian_id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#ef4444' }} title="Delete"><Trash2 size={15} /></button>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginBottom: '6px', gap: '12px', paddingRight: '60px' }}>
                       <strong style={{ color: 'var(--text-primary)' }}>{g.GuardianName || (g as any).name}</strong>
                       <span className="badge badge-occupied">{g.Relationship || (g as any).relation}</span>
                     </div>
@@ -270,7 +405,88 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
             )}
           </div>
         )}
+
+        {/* Modal Footer */}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', marginTop: '20px' }}>
+          <button className="btn btn-secondary" onClick={onClose}>
+            Close
+          </button>
+          {onEditStudent && (
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                onEditStudent(student);
+              }}
+            >
+              <Edit2 size={14} /> Edit Resident
+            </button>
+          )}
+          {onDeleteStudent && (
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                onClose();
+                onDeleteStudent(sId);
+              }}
+            >
+              <Trash2 size={14} /> Delete Resident
+            </button>
+          )}
+        </div>
       </div>
     </div>
+
+    {/* Secondary Guardian Form Modal Overlay */}
+    {showGuardianForm && (
+      <div className="modal-backdrop" style={{ zIndex: 1100 }} onClick={() => setShowGuardianForm(false)}>
+        <div 
+          className="modal-card" 
+          style={{ width: '560px', maxWidth: '95vw', padding: '28px' }} 
+          onClick={e => e.stopPropagation()}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <h3 style={{ margin: 0, fontSize: '1.25rem', color: 'var(--text-primary)' }}>
+              {editingGuardian ? `Edit Guardian (${editingGuardian.GuardianID})` : `Add Guardian for ${fName}`}
+            </h3>
+            <button onClick={() => setShowGuardianForm(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+              <X size={22} />
+            </button>
+          </div>
+          
+          <form onSubmit={handleSubmitGuardian}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Full Name</label>
+                <input required type="text" className="form-input" value={guardianFormData.GuardianName || ''} onChange={e => setGuardianFormData({ ...guardianFormData, GuardianName: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Relationship</label>
+                <select className="form-select" value={guardianFormData.Relationship || ''} onChange={e => setGuardianFormData({ ...guardianFormData, Relationship: e.target.value })}>
+                  <option>Father</option><option>Mother</option><option>Sibling</option><option>Uncle</option><option>Local Guardian</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Phone Number</label>
+                <input required type="text" className="form-input" value={guardianFormData.Phone || ''} onChange={e => setGuardianFormData({ ...guardianFormData, Phone: e.target.value })} />
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Email Address</label>
+                <input type="email" className="form-input" value={guardianFormData.Email || ''} onChange={e => setGuardianFormData({ ...guardianFormData, Email: e.target.value })} />
+              </div>
+              <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Residential Address</label>
+                <textarea className="form-input" rows={2} value={guardianFormData.Address || ''} onChange={e => setGuardianFormData({ ...guardianFormData, Address: e.target.value })} />
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '32px' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setShowGuardianForm(false)}>Cancel</button>
+              <button type="submit" className="btn btn-primary">Save Guardian Details</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+    </>
   );
 };

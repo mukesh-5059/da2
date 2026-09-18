@@ -12,7 +12,7 @@ import { StudentProfileModal } from './components/Personnel/StudentProfileModal'
 import { MessTab } from './components/Mess/MessTab';
 import { FinancialsTab } from './components/Financials/FinancialsTab';
 import { InventoryTab } from './components/Inventory/InventoryTab';
-import { Bed, Layers, CheckSquare, AlertCircle, Building2 } from 'lucide-react';
+import { Bed, Layers, CheckSquare, AlertCircle, Building2, X } from 'lucide-react';
 import './styles/index.css';
 
 export const App: React.FC = () => {
@@ -51,6 +51,7 @@ export const App: React.FC = () => {
   // Modals & Drawers state
   const [selectedRoomDrawer, setSelectedRoomDrawer] = useState<Room | null>(null);
   const [selectedStudentForProfile, setSelectedStudentForProfile] = useState<Student | null>(null);
+  const [editingStudentFromModal, setEditingStudentFromModal] = useState<Student | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -864,11 +865,117 @@ export const App: React.FC = () => {
         onDeleteRoom={handleDeleteRoom}
       />
 
-      {/* 360 Student Profile Modal */}
+      {/* Student Profile Modal */}
       <StudentProfileModal
         student={selectedStudentForProfile}
         onClose={() => setSelectedStudentForProfile(null)}
+        onEditStudent={(s) => {
+          setSelectedStudentForProfile(null);
+          setEditingStudentFromModal(s);
+        }}
+        onDeleteStudent={handleDeleteStudent}
+        onSelectRoom={handleSelectRoomByNo}
       />
+
+      {/* Standalone Edit Student Modal */}
+      {editingStudentFromModal && (
+        <div className="modal-backdrop" style={{ zIndex: 1000 }} onClick={() => setEditingStudentFromModal(null)}>
+          <div className="modal-card" style={{ width: '560px', maxWidth: '95vw', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
+              <h3 style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                Edit Student Profile ({editingStudentFromModal.StudentID || (editingStudentFromModal as any).student_id})
+              </h3>
+              <button onClick={() => setEditingStudentFromModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              await handleSaveStudent(editingStudentFromModal, true);
+              setEditingStudentFromModal(null);
+            }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>First Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editingStudentFromModal.FirstName || (editingStudentFromModal as any).name || ''}
+                    onChange={(e) => setEditingStudentFromModal({ ...editingStudentFromModal, FirstName: e.target.value, name: e.target.value } as any)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Last Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editingStudentFromModal.LastName || ''}
+                    onChange={(e) => setEditingStudentFromModal({ ...editingStudentFromModal, LastName: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={editingStudentFromModal.Email || (editingStudentFromModal as any).email || ''}
+                    onChange={(e) => setEditingStudentFromModal({ ...editingStudentFromModal, Email: e.target.value, email: e.target.value } as any)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Phone Number</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editingStudentFromModal.Phone || (editingStudentFromModal as any).phone || ''}
+                    onChange={(e) => setEditingStudentFromModal({ ...editingStudentFromModal, Phone: e.target.value, phone: e.target.value } as any)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label>Department</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editingStudentFromModal.Department || (editingStudentFromModal as any).department || ''}
+                    onChange={(e) => setEditingStudentFromModal({ ...editingStudentFromModal, Department: e.target.value, department: e.target.value } as any)}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Blood Group</label>
+                  <select
+                    className="form-select"
+                    value={editingStudentFromModal.BloodGroup || (editingStudentFromModal as any).blood_group || 'O+'}
+                    onChange={(e) => setEditingStudentFromModal({ ...editingStudentFromModal, BloodGroup: e.target.value, blood_group: e.target.value } as any)}
+                  >
+                    {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map((bg) => (
+                      <option key={bg} value={bg}>{bg}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px', borderTop: '1px solid var(--border-subtle)', paddingTop: '14px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingStudentFromModal(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Student Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
