@@ -155,70 +155,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   });
 
   // Metrics
-  const totalProcurementCost = procurementEvents.reduce((acc, curr) => acc + (curr.TotalCost || 0), 0);
-  const lowStockCount = inventoryStock.filter((s) => s.CurrentQuantity < 25).length;
-
   return (
     <div>
-      {/* Overview Metric Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="card-glass" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(59, 130, 246, 0.15)', padding: '12px', borderRadius: '12px', color: '#60a5fa' }}>
-            <Package size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
-              Pantry Stock Items
-            </span>
-            <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginTop: '2px' }}>
-              {inventoryStock.length}
-            </h3>
-          </div>
-        </div>
-
-        <div className="card-glass" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(239, 68, 68, 0.15)', padding: '12px', borderRadius: '12px', color: '#f87171' }}>
-            <AlertTriangle size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
-              Low Stock Alerts (&lt; 25)
-            </span>
-            <h3 style={{ fontSize: '1.4rem', color: lowStockCount > 0 ? '#f87171' : 'var(--text-primary)', marginTop: '2px' }}>
-              {lowStockCount} Items
-            </h3>
-          </div>
-        </div>
-
-        <div className="card-glass" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(16, 185, 129, 0.15)', padding: '12px', borderRadius: '12px', color: '#10b981' }}>
-            <DollarSign size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
-              Total Procurement Spend
-            </span>
-            <h3 style={{ fontSize: '1.4rem', color: '#10b981', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
-              ₹{totalProcurementCost.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-            </h3>
-          </div>
-        </div>
-
-        <div className="card-glass" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ background: 'rgba(168, 85, 247, 0.15)', padding: '12px', borderRadius: '12px', color: '#c084fc' }}>
-            <Truck size={24} />
-          </div>
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase' }}>
-              Active Vendors
-            </span>
-            <h3 style={{ fontSize: '1.4rem', color: 'var(--text-primary)', marginTop: '2px' }}>
-              {suppliers.length} Suppliers
-            </h3>
-          </div>
-        </div>
-      </div>
-
       {/* Sub-Tab Navigation Pills */}
       <div className="tab-pills" style={{ marginBottom: '24px' }}>
         <button
@@ -320,7 +258,6 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                   </tr>
                 ) : (
                   filteredStock.map((s) => {
-                    const isLow = s.CurrentQuantity < 25;
                     return (
                       <tr key={`${s.MessID}-${s.ItemID}`}>
                         <td>
@@ -333,8 +270,8 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                           <span className="badge badge-vacant">{s.Category || 'General'}</span>
                         </td>
                         <td>
-                          <span style={{ fontWeight: 700, color: isLow ? '#f87171' : 'var(--text-primary)' }}>
-                            {s.CurrentQuantity} {isLow && <AlertTriangle size={12} style={{ marginLeft: '4px', verticalAlign: 'middle' }} />}
+                          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {s.CurrentQuantity}
                           </span>
                         </td>
                         <td>{s.Unit || 'units'}</td>

@@ -83,17 +83,7 @@ export const HostelsTab: React.FC<HostelsTabProps> = ({
                     </span>
                   </div>
                 </div>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    backgroundColor: hostel.HostelType === 'Boys' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(236, 72, 153, 0.15)',
-                    color: hostel.HostelType === 'Boys' ? '#60a5fa' : '#f472b6',
-                    border: `1px solid ${hostel.HostelType === 'Boys' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
-                  }}
-                >
+                <span className="tag-pill">
                   {hostel.HostelType} Hostel
                 </span>
               </div>

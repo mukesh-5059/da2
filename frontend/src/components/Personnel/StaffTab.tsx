@@ -96,7 +96,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({
               <tr key={st.StaffID}>
                 <td>
                   <div
-                    style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', cursor: 'pointer' }}
+                    style={{ fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-link)', cursor: 'pointer' }}
                     onClick={() => handleOpenEdit(st)}
                   >
                     {st.StaffID}
@@ -110,11 +110,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({
                 </td>
                 <td>
                   <span
-                    className="badge"
-                    style={{
-                      background: st.Role === 'Chef' ? 'rgba(245, 158, 11, 0.15)' : st.Role === 'Security' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(107, 114, 128, 0.2)',
-                      color: st.Role === 'Chef' ? '#f59e0b' : st.Role === 'Security' ? '#60a5fa' : '#9ca3af',
-                    }}
+                    className="tag-pill"
                   >
                     {st.Role === 'Chef' && <Utensils size={12} />}
                     {st.Role === 'Security' && <Shield size={12} />}

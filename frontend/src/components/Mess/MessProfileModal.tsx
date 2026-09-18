@@ -198,7 +198,7 @@ export const MessProfileModal: React.FC<MessProfileModalProps> = ({ mess, onClos
                 meals.map((meal, idx) => (
                   <div key={meal.MealID || (meal as any).meal_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: idx < meals.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--accent-primary)', cursor: 'pointer' }} onClick={() => handleOpenEditMeal(meal)}>
+                      <div style={{ fontWeight: 600, color: 'var(--text-link)', cursor: 'pointer' }} onClick={() => handleOpenEditMeal(meal)}>
                         {meal.MealName || (meal as any).meal_name}
                       </div>
                       {meal.Description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{meal.Description}</div>}
@@ -365,15 +365,12 @@ export const MessProfileModal: React.FC<MessProfileModalProps> = ({ mess, onClos
                           const sId = s.ScheduleID || (s as any).schedule_id;
                           const itemName = s.ItemName || s.MealName || 'Meal Entry';
                           const mealTime = s.MealTime || (s as any).meal_time || 'Breakfast';
-                          let badgeBg = 'rgba(59, 130, 246, 0.15)', badgeColor = '#60a5fa';
-                          if (mealTime === 'Lunch') { badgeBg = 'rgba(234, 179, 8, 0.15)'; badgeColor = '#facc15'; }
-                          else if (mealTime === 'Snack') { badgeBg = 'rgba(168, 85, 247, 0.15)'; badgeColor = '#c084fc'; }
-                          else if (mealTime === 'Dinner') { badgeBg = 'rgba(244, 63, 94, 0.15)'; badgeColor = '#fb7185'; }
+                          
                           return (
                             <div key={sId} style={{ background: 'var(--bg-surface)', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-                                  <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: '4px', background: badgeBg, color: badgeColor, fontWeight: 700, textTransform: 'uppercase' }}>{mealTime}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                                  <span className="tag-pill">{mealTime}</span>
                                 </div>
                                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.85rem', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={() => handleOpenEditSchedule(s)} title="Edit schedule item">{itemName}</strong>
                               </div>

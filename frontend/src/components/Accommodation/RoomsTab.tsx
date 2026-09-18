@@ -186,17 +186,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                           </span>
                         </div>
                       </div>
-                      <span
-                        style={{
-                          padding: '4px 10px',
-                          borderRadius: '12px',
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          backgroundColor: (hType as string) === 'Boys' || (hType as string) === 'M' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(236, 72, 153, 0.15)',
-                          color: (hType as string) === 'Boys' || (hType as string) === 'M' ? '#60a5fa' : '#f472b6',
-                          border: `1px solid ${(hType as string) === 'Boys' || (hType as string) === 'M' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(236, 72, 153, 0.3)'}`,
-                        }}
-                      >
+                      <span className="tag-pill">
                         {hType} Hostel
                       </span>
                     </div>
@@ -220,9 +210,15 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px', fontSize: '0.75rem' }}>
-                        <span style={{ color: '#10b981', fontWeight: 600 }}>🟢 {vacantCount} Vacant</span>
-                        <span style={{ color: '#6366f1', fontWeight: 600 }}>🔵 {occupiedCount} Occupied</span>
-                        {maintCount > 0 && <span style={{ color: '#f59e0b', fontWeight: 600 }}>🟡 {maintCount} Maint</span>}
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{vacantCount} Vacant</span>
+                        <span style={{ color: 'var(--text-muted)' }}>•</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{occupiedCount} Occupied</span>
+                        {maintCount > 0 && (
+                          <>
+                            <span style={{ color: 'var(--text-muted)' }}>•</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{maintCount} Maint</span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

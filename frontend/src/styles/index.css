@@ -4,22 +4,23 @@
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Color System */
-  --bg-dark: #090d14;
-  --bg-surface: #111723;
-  --bg-card: #192131;
-  --bg-card-hover: #222c40;
+  --bg-dark: #050505;
+  --bg-surface: #0a0a0a;
+  --bg-card: #141414;
+  --bg-card-hover: #1f1f1f;
   
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.15);
-  --border-accent: rgba(99, 102, 241, 0.4);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-accent: rgba(16, 185, 129, 0.4);
 
-  --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-link: #34d399;
 
-  --accent-primary: #6366f1;
-  --accent-primary-hover: #4f46e5;
-  --accent-glow: rgba(99, 102, 241, 0.25);
+  --accent-primary: #10b981;
+  --accent-primary-hover: #059669;
+  --accent-glow: rgba(16, 185, 129, 0.25);
 
   --status-vacant: #10b981;
   --status-vacant-bg: rgba(16, 185, 129, 0.12);
@@ -184,22 +185,14 @@ h1, h2, h3, h4, h5 {
   letter-spacing: 0.04em;
 }
 
-.badge-vacant {
-  background-color: var(--status-vacant-bg);
-  color: var(--status-vacant);
+.badge-vacant,
+.badge-occupied,
+.badge-maint,
+.badge-maintenance {
+  background-color: transparent;
+  color: var(--accent-primary);
   border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.badge-occupied {
-  background-color: var(--status-occupied-bg);
-  color: var(--status-occupied);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-}
-
-.badge-maint {
-  background-color: var(--status-maint-bg);
-  color: var(--status-maint);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  padding: 2px 8px;
 }
 
 /* Data Tables */
@@ -306,13 +299,16 @@ h1, h2, h3, h4, h5 {
 }
 
 .matrix-tile.vacant {
-  border-left: 4px solid var(--status-vacant);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 .matrix-tile.occupied {
-  border-left: 4px solid var(--status-occupied);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), transparent);
+  border-color: rgba(56, 189, 248, 0.3);
 }
 .matrix-tile.maint {
-  border-left: 4px solid var(--status-maint);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent);
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
 .matrix-tile .room-no {
@@ -545,4 +541,20 @@ h1, h2, h3, h4, h5 {
   cursor: not-allowed;
   opacity: 0.6;
   color: var(--text-muted);
+}
+
+.tag-pill {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.70rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background-color: rgba(16, 185, 129, 0.05);
+  color: var(--accent-primary);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }

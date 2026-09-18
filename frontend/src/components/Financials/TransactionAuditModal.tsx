@@ -41,7 +41,7 @@ export const TransactionAuditModal: React.FC<TransactionAuditModalProps> = ({
               Target Bill ID:{' '}
               <button 
                 onClick={() => { onClose(); onSelectBill(bId); }} 
-                style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
+                style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-link)', background: 'none', border: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer', fontWeight: 600 }}
               >
                 {bId}
               </button>
@@ -61,7 +61,7 @@ export const TransactionAuditModal: React.FC<TransactionAuditModalProps> = ({
             <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Payer Resident:</span>
             <button
               onClick={() => { onClose(); sId && onSelectStudent(sId); }}
-              style={{ background: 'none', border: 'none', color: 'var(--accent-primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-link)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
             >
               {name} ({sId})
             </button>

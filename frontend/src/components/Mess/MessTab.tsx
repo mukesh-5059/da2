@@ -142,7 +142,7 @@ export const MessTab: React.FC<MessTabProps> = ({
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <h3 
-                          style={{ fontSize: '1.15rem', color: 'var(--accent-primary)', cursor: 'pointer' }}
+                          style={{ fontSize: '1.15rem', color: 'var(--text-link)', cursor: 'pointer' }}
                           onClick={() => setViewingMess(mess)}
                           title="View Mess Details"
                         >
@@ -236,7 +236,7 @@ export const MessTab: React.FC<MessTabProps> = ({
                       <tr key={enr.EnrollmentID || (enr as any).enrollment_id}>
                         <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                           <div 
-                            style={{ color: 'var(--accent-primary)', cursor: 'pointer' }}
+                            style={{ color: 'var(--text-link)', cursor: 'pointer' }}
                             onClick={() => setViewingEnrollment(enr)}
                           >
                             {enr.EnrollmentID || (enr as any).enrollment_id}

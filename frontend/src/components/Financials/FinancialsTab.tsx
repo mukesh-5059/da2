@@ -63,12 +63,14 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
   };
 
   // Calculations
-  const totalBilled = bills.reduce((acc, b) => acc + (b.TotalAmount || (b as any).total_amount || 0), 0);
-  const totalCollected = bills
-    .filter((b) => (b.PaymentStatus || (b as any).payment_status) === 'PAID')
-    .reduce((acc, b) => acc + (b.TotalAmount || (b as any).total_amount || 0), 0);
-  const totalOutstanding = totalBilled - totalCollected;
-  const overdueCount = bills.filter((b) => (b.PaymentStatus || (b as any).payment_status) === 'OVERDUE').length;
+  const pendingBills = bills.filter((b) => (b.PaymentStatus || (b as any).payment_status) === 'PENDING');
+  const overdueBills = bills.filter((b) => (b.PaymentStatus || (b as any).payment_status) === 'OVERDUE');
+
+  const totalPendingAmount = pendingBills.reduce((acc, b) => acc + (b.TotalAmount || (b as any).total_amount || 0), 0);
+  const totalOverdueAmount = overdueBills.reduce((acc, b) => acc + (b.TotalAmount || (b as any).total_amount || 0), 0);
+  
+  const pendingStudentsCount = new Set(pendingBills.map(b => b.StudentID || (b as any).student_id)).size;
+  const overdueStudentsCount = new Set(overdueBills.map(b => b.StudentID || (b as any).student_id)).size;
 
   const filteredBills = bills.filter((b) => {
     const status = b.PaymentStatus || (b as any).payment_status || 'PENDING';
@@ -87,30 +89,30 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
       {/* Overview Stat Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div className="card-glass" style={{ padding: '16px' }}>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Invoiced</div>
+          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Pending</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-            ₹{totalBilled.toLocaleString('en-IN')}
+            ₹{totalPendingAmount.toLocaleString('en-IN')}
           </div>
         </div>
 
-        <div className="card-glass" style={{ padding: '16px', borderLeft: '4px solid #10b981' }}>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#10b981', fontWeight: 600 }}>Collected Dues</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-            ₹{totalCollected.toLocaleString('en-IN')}
+        <div className="card-glass" style={{ padding: '16px' }}>
+          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Overdue</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+            ₹{totalOverdueAmount.toLocaleString('en-IN')}
           </div>
         </div>
 
-        <div className="card-glass" style={{ padding: '16px', borderLeft: '4px solid #f59e0b' }}>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#f59e0b', fontWeight: 600 }}>Outstanding Balance</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-            ₹{totalOutstanding.toLocaleString('en-IN')}
+        <div className="card-glass" style={{ padding: '16px' }}>
+          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Pending Students</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+            {pendingStudentsCount}
           </div>
         </div>
 
-        <div className="card-glass" style={{ padding: '16px', borderLeft: '4px solid #ef4444' }}>
-          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#ef4444', fontWeight: 600 }}>Overdue Accounts</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ef4444', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-            {overdueCount} Students
+        <div className="card-glass" style={{ padding: '16px' }}>
+          <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Overdue Students</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+            {overdueStudentsCount}
           </div>
         </div>
       </div>
@@ -214,7 +216,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                         </td>
                         <td>
                           <div
-                            style={{ fontWeight: 600, color: 'var(--accent-primary)', cursor: 'pointer' }}
+                            style={{ fontWeight: 600, color: 'var(--text-link)', cursor: 'pointer' }}
                             onClick={(e) => {
                               e.stopPropagation();
                               onSelectStudent(sId);
@@ -228,7 +230,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                         <td>
                           <strong>{mStr} {yr}</strong>
                         </td>
-                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: isPaid ? '#10b981' : '#f87171' }}>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>
                           ₹{(b.TotalAmount || (b as any).total_amount || 0).toLocaleString('en-IN')}
                         </td>
                         <td>

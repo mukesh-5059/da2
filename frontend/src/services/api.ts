@@ -6,7 +6,7 @@ const API_BASE = '/api';
 
 // Set this to true to use dummy data and disconnect from backend.
 // Change it to false when the real backend is ready to be tested.
-export const USE_MOCK_API = true;
+export const USE_MOCK_API = false;
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
