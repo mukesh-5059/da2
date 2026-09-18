@@ -1,4 +1,59 @@
 from flask import request
+import re
+
+# PostgreSQL folds unquoted column names to lowercase.
+# This set contains all word segments that appear in our schema column names.
+# e.g. "messname" → "MessName", "currentquantity" → "CurrentQuantity"
+_PASCAL_SEGMENTS = sorted([
+    'student', 'warden', 'hostel', 'room', 'type', 'mess', 'staff', 'supplier',
+    'inventory', 'item', 'guardian', 'allocation', 'meal', 'bill', 'monthly',
+    'payment', 'transaction', 'visitor', 'attendance', 'log', 'leave', 'request',
+    'schedule', 'enrollment', 'complaint', 'procurement', 'notice', 'event',
+    'id', 'name', 'first', 'last', 'gender', 'email', 'phone', 'date', 'status',
+    'address', 'amount', 'balance', 'due', 'paid', 'total', 'unit', 'price',
+    'cost', 'quantity', 'current', 'last', 'updated', 'joining', 'admission',
+    'blood', 'group', 'department', 'designation', 'floor', 'number', 'count',
+    'capacity', 'category', 'description', 'day', 'time', 'in', 'out', 'purpose',
+    'type', 'reason', 'role', 'approved', 'processed', 'partial', 'overdue',
+    'active', 'is', 'dob', 'message', 'subject', 'posted', 'resolved',
+    'purchase', 'method', 'created', 'by', 'per', 'month', 'year', 'fee',
+    'rent', 'other', 'charge', 'late', 'penalty', 'level', 'mode',
+], key=len, reverse=True)  # longest segments first so greedy match works
+
+
+def _restore_pascal_case(row_dict: dict) -> dict:
+    """Convert psycopg2's lowercase column keys back to PascalCase.
+
+    Only operates on pure-lowercase keys (psycopg2 output). Keys that already
+    contain uppercase (sqlite3 mode) pass through unchanged.
+    """
+    result = {}
+    for key, val in row_dict.items():
+        if key == key.lower() and key != key.upper():
+            result[_pascal_key(key)] = val
+        else:
+            result[key] = val
+    return result
+
+
+def _pascal_key(key: str) -> str:
+    """Greedily decompose a lowercase compound word into PascalCase segments."""
+    remaining = key
+    parts = []
+    while remaining:
+        matched = False
+        for seg in _PASCAL_SEGMENTS:
+            if remaining.startswith(seg):
+                parts.append(seg.capitalize())
+                remaining = remaining[len(seg):]
+                matched = True
+                break
+        if not matched:
+            # Fallback: capitalize whatever is left
+            parts.append(remaining.capitalize())
+            break
+    return ''.join(parts)
+
 
 def paginate_query(cursor, base_query, search_columns, params=None):
     """
@@ -61,7 +116,12 @@ def paginate_query(cursor, base_query, search_columns, params=None):
 
     # 5. Execute Final Query
     cursor.execute(base_query, params)
-    rows = [dict(r) for r in cursor.fetchall()]
+    raw_rows = cursor.fetchall()
+
+    rows = []
+    for r in raw_rows:
+        d = dict(r)
+        rows.append(_restore_pascal_case(d))
 
     return {
         "data": rows,

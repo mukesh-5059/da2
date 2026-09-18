@@ -46,8 +46,15 @@ def _convert_query(query):
 
 
 class PostgresRow:
-    """Dict-like and index-accessible row wrapper that mirrors sqlite3.Row."""
+    """Dict-like and index-accessible row wrapper that mirrors sqlite3.Row.
+
+    dict(row) works because Python's dict() recognizes the mapping protocol:
+    it calls row.keys() and then row[key] for each key.
+    """
     def __init__(self, description, values):
+        # psycopg2 returns lowercase column names; preserve them as-is.
+        # The _lower_map allows case-insensitive lookup so routes using
+        # 'MessName' or 'messname' both resolve correctly.
         self._keys = [col.name for col in description] if description else []
         self._values = list(values)
         self._lower_map = {k.lower(): i for i, k in enumerate(self._keys)}
@@ -73,16 +80,18 @@ class PostgresRow:
         return self._values
 
     def items(self):
-        return [(k, self._values[i]) for i, k in enumerate(self._keys)]
+        return list(zip(self._keys, self._values))
 
     def __iter__(self):
+        # Iterating a mapping yields keys — dict() then calls __getitem__ per key.
         return iter(self._keys)
 
     def __len__(self):
         return len(self._keys)
 
     def __repr__(self):
-        return repr(dict(self.items()))
+        return repr(dict(zip(self._keys, self._values)))
+
 
 
 class PostgresCursorWrapper:
