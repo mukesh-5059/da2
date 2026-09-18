@@ -1,58 +1,82 @@
 from flask import request
 import re
 
-# PostgreSQL folds unquoted column names to lowercase.
-# This set contains all word segments that appear in our schema column names.
-# e.g. "messname" → "MessName", "currentquantity" → "CurrentQuantity"
-_PASCAL_SEGMENTS = sorted([
-    'student', 'warden', 'hostel', 'room', 'type', 'mess', 'staff', 'supplier',
-    'inventory', 'item', 'guardian', 'allocation', 'meal', 'bill', 'monthly',
-    'payment', 'transaction', 'visitor', 'attendance', 'log', 'leave', 'request',
-    'schedule', 'enrollment', 'complaint', 'procurement', 'notice', 'event',
-    'id', 'name', 'first', 'last', 'gender', 'email', 'phone', 'date', 'status',
-    'address', 'amount', 'balance', 'due', 'paid', 'total', 'unit', 'price',
-    'cost', 'quantity', 'current', 'last', 'updated', 'joining', 'admission',
-    'blood', 'group', 'department', 'designation', 'floor', 'number', 'count',
-    'capacity', 'category', 'description', 'day', 'time', 'in', 'out', 'purpose',
-    'type', 'reason', 'role', 'approved', 'processed', 'partial', 'overdue',
-    'active', 'is', 'dob', 'message', 'subject', 'posted', 'resolved',
-    'purchase', 'method', 'created', 'by', 'per', 'month', 'year', 'fee',
-    'rent', 'other', 'charge', 'late', 'penalty', 'level', 'mode',
-], key=len, reverse=True)  # longest segments first so greedy match works
+# PostgreSQL folds all unquoted identifiers to lowercase.
+# Complete explicit mapping: lowercase column name → original PascalCase DDL name.
+# Covers every column across all 23 tables in the schema.
+_COLUMN_NAME_MAP = {
+    # IDs
+    'wardenid': 'WardenID', 'hostelid': 'HostelID', 'roomno': 'RoomNo',
+    'studentid': 'StudentID', 'staffid': 'StaffID', 'guardianid': 'GuardianID',
+    'messid': 'MessID', 'mealid': 'MealID', 'billid': 'BillID',
+    'transactionid': 'TransactionID', 'supplierid': 'SupplierID',
+    'itemid': 'ItemID', 'stockid': 'StockID', 'purchaseid': 'PurchaseID',
+    'noticeid': 'NoticeID', 'leaveid': 'LeaveID', 'visitorid': 'VisitorID',
+    'logid': 'LogID', 'complaintid': 'ComplaintID', 'allocationid': 'AllocationID',
+    'scheduleid': 'ScheduleID', 'enrollmentid': 'EnrollmentID',
+    # Names
+    'firstname': 'FirstName', 'lastname': 'LastName', 'hostelname': 'HostelName',
+    'messname': 'MessName', 'suppliername': 'SupplierName', 'itemname': 'ItemName',
+    'staffname': 'StaffName', 'guardianname': 'GuardianName', 'visitorname': 'VisitorName',
+    'studentname': 'StudentName', 'wardenname': 'WardenName',
+    # Personal info
+    'gender': 'Gender', 'dob': 'DOB', 'email': 'Email', 'phone': 'Phone',
+    'address': 'Address', 'bloodgroup': 'BloodGroup', 'department': 'Department',
+    'designation': 'Designation', 'role': 'Role',
+    # Room / Hostel
+    'floorcount': 'FloorCount', 'totalfloors': 'TotalFloors', 'totalrooms': 'TotalRooms',
+    'floorno': 'FloorNo', 'roomtype': 'RoomType', 'capacity': 'Capacity',
+    'roomrent': 'RoomRent', 'isoccupied': 'IsOccupied',
+    # Dates
+    'joiningdate': 'JoiningDate', 'admissiondate': 'AdmissionDate',
+    'allocationdate': 'AllocationDate', 'vacatingdate': 'VacatingDate',
+    'purchasedate': 'PurchaseDate', 'duedate': 'DueDate', 'paymentdate': 'PaymentDate',
+    'enrollmentdate': 'EnrollmentDate', 'startdate': 'StartDate', 'enddate': 'EndDate',
+    'lastupdateddate': 'LastUpdatedDate', 'posteddate': 'PostedDate',
+    'resolveddate': 'ResolvedDate', 'requestdate': 'RequestDate',
+    'approveddate': 'ApprovedDate', 'visitdate': 'VisitDate', 'logdate': 'LogDate',
+    # Financials / Billing
+    'billingmonth': 'BillingMonth', 'billingyear': 'BillingYear',
+    'roomrentcharge': 'RoomRentCharge', 'messfee': 'MessFee',
+    'othercharges': 'OtherCharges', 'totalamount': 'TotalAmount',
+    'amountpaid': 'AmountPaid', 'balancedue': 'BalanceDue',
+    'paymentstatus': 'PaymentStatus', 'paymentmethod': 'PaymentMethod',
+    'latepenalty': 'LatePenalty', 'transactionamount': 'TransactionAmount',
+    # Inventory
+    'category': 'Category', 'unit': 'Unit', 'currentquantity': 'CurrentQuantity',
+    'unitprice': 'UnitPrice', 'totalcost': 'TotalCost', 'quantity': 'Quantity',
+    # Mess / Schedule
+    'mealtype': 'MealType', 'dayofweek': 'DayOfWeek', 'servingtime': 'ServingTime',
+    'mealplantype': 'MealPlanType', 'menudetails': 'MenuDetails',
+    'enrollmentstatus': 'EnrollmentStatus',
+    # Operations
+    'leavetype': 'LeaveType', 'leavereason': 'LeaveReason',
+    'approvalstatus': 'ApprovalStatus', 'purposeofvisit': 'PurposeOfVisit',
+    'checkintime': 'CheckInTime', 'checkouttime': 'CheckOutTime',
+    'attendancestatus': 'AttendanceStatus', 'complainttype': 'ComplaintType',
+    'complaintdescription': 'ComplaintDescription', 'resolutionstatus': 'ResolutionStatus',
+    'subject': 'Subject', 'message': 'Message', 'noticetype': 'NoticeType',
+    'description': 'Description', 'isactive': 'IsActive', 'isresolved': 'IsResolved',
+    # Misc
+    'academicyear': 'AcademicYear', 'status': 'Status', 'type': 'Type',
+    'month': 'Month', 'year': 'Year',
+}
 
 
 def _restore_pascal_case(row_dict: dict) -> dict:
-    """Convert psycopg2's lowercase column keys back to PascalCase.
+    """Convert psycopg2's lowercase column keys back to original PascalCase.
 
-    Only operates on pure-lowercase keys (psycopg2 output). Keys that already
-    contain uppercase (sqlite3 mode) pass through unchanged.
+    Keys that already contain uppercase letters (sqlite3 mode) pass through unchanged.
+    Unknown lowercase keys are title-cased as a fallback.
     """
     result = {}
     for key, val in row_dict.items():
-        if key == key.lower() and key != key.upper():
-            result[_pascal_key(key)] = val
-        else:
+        if key != key.lower():
+            # Already has uppercase — sqlite3 mode, pass through
             result[key] = val
+        else:
+            result[_COLUMN_NAME_MAP.get(key, key.capitalize())] = val
     return result
-
-
-def _pascal_key(key: str) -> str:
-    """Greedily decompose a lowercase compound word into PascalCase segments."""
-    remaining = key
-    parts = []
-    while remaining:
-        matched = False
-        for seg in _PASCAL_SEGMENTS:
-            if remaining.startswith(seg):
-                parts.append(seg.capitalize())
-                remaining = remaining[len(seg):]
-                matched = True
-                break
-        if not matched:
-            # Fallback: capitalize whatever is left
-            parts.append(remaining.capitalize())
-            break
-    return ''.join(parts)
 
 
 def paginate_query(cursor, base_query, search_columns, params=None):
