@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Mess, Meal, MessSchedule, MessEnrollment, Student } from '../../types';
 import { Utensils, Calendar, Plus, Edit2, Trash2, CheckCircle, Search, User, DollarSign, X } from 'lucide-react';
+import { api } from '../../services/api';
 import { MessProfileModal } from './MessProfileModal';
 import { EditMessModal } from './EditMessModal';
 import { EditMessEnrollmentModal } from './EditMessEnrollmentModal';
 import { EnrollmentProfileModal } from './EnrollmentProfileModal';
-import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
 import { PaginationFooter } from '../PaginationFooter';
@@ -14,7 +15,7 @@ interface MessTabProps {
   messes: Mess[];
   meals: Meal[];
   schedules: MessSchedule[];
-  enrollments: MessEnrollment[];
+  enrollments?: MessEnrollment[];
   students: Student[];
   onSaveMess: (data: Partial<Mess>, isEdit: boolean) => Promise<void>;
   onDeleteMess: (id: string) => Promise<void>;
@@ -44,12 +45,61 @@ export const MessTab: React.FC<MessTabProps> = ({
 
   const enrollColumns: ColumnDef<MessEnrollment>[] = [
     { key: 'EnrollmentID', label: 'Enrollment ID', getValue: enr => enr.EnrollmentID || (enr as any).enrollment_id },
-    { key: 'StudentName', label: 'Student Name', getValue: enr => `${enr.FirstName || ''} ${enr.LastName || ''}`.trim() || enr.StudentName || enr.StudentID || (enr as any).student_id },
-    { key: 'MessFacility', label: 'Mess Facility', getValue: enr => enr.MessName || enr.MessID || (enr as any).mess_name || (enr as any).mess_id },
-    { key: 'Status', label: 'Status', getValue: () => 'Active' }
+    { key: 'FirstName', label: 'Student Name', getValue: enr => `${enr.FirstName || ''} ${enr.LastName || ''}`.trim() || enr.StudentName || enr.StudentID || (enr as any).student_id },
+    { key: 'MessName', label: 'Mess Facility', getValue: enr => enr.MessName || enr.MessID || (enr as any).mess_name || (enr as any).mess_id },
+    { key: 'Status', label: 'Status', getValue: () => 'Active', sortable: false }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredEnrollments, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(enrollments, enrollColumns);
+  const [enrollList, setEnrollList] = useState<MessEnrollment[]>([]);
+  const [enrollTotalRecords, setEnrollTotalRecords] = useState(0);
+  const [enrollLoading, setEnrollLoading] = useState(false);
+  const [enrollPage, setEnrollPage] = useState(1);
+  const [enrollSearchCol, setEnrollSearchCol] = useState('all');
+  const [enrollSearchText, setEnrollSearchText] = useState('');
+  const [enrollSortCol, setEnrollSortCol] = useState<string | null>(null);
+  const [enrollSortDir, setEnrollSortDir] = useState<'asc' | 'desc'>('asc');
+  const enrollItemsPerPage = 25;
+
+  const fetchEnrollments = async () => {
+    setEnrollLoading(true);
+    try {
+      const res: any = await api.getMessEnrollments({
+        page: enrollPage,
+        limit: enrollItemsPerPage,
+        search: enrollSearchText.trim(),
+        sortCol: enrollSortCol || '',
+        sortDir: enrollSortDir,
+      });
+      if (res && typeof res === 'object' && 'totalRecords' in res) {
+        setEnrollList(res.data || []);
+        setEnrollTotalRecords(Number(res.totalRecords) || 0);
+      } else if (Array.isArray(res)) {
+        setEnrollList(res);
+        setEnrollTotalRecords(res.length);
+      }
+    } catch (e) {
+      console.error('Failed to load mess enrollments', e);
+    } finally {
+      setEnrollLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setEnrollPage(1);
+  }, [enrollSearchText, enrollSortCol, enrollSortDir]);
+
+  useEffect(() => {
+    fetchEnrollments();
+  }, [enrollPage, enrollSearchText, enrollSortCol, enrollSortDir]);
+
+  const handleEnrollSort = (key: string) => {
+    if (enrollSortCol === key) {
+      setEnrollSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setEnrollSortCol(key);
+      setEnrollSortDir('asc');
+    }
+  };
 
   // Detailed View states
   const [viewingMess, setViewingMess] = useState<Mess | null>(null);
@@ -115,7 +165,7 @@ export const MessTab: React.FC<MessTabProps> = ({
           onClick={() => setSubTab('enrollments')}
         >
           <User size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          All Student Enrollments ({enrollments.length})
+          All Student Enrollments ({enrollTotalRecords})
         </button>
       </div>
 
@@ -206,25 +256,31 @@ export const MessTab: React.FC<MessTabProps> = ({
           <div style={{ marginBottom: '16px' }}>
             <TableControls 
               columns={enrollColumns} 
-              searchCol={searchCol} 
-              setSearchCol={setSearchCol} 
-              searchText={searchText} 
-              setSearchText={setSearchText}
+              searchCol={enrollSearchCol} 
+              setSearchCol={setEnrollSearchCol} 
+              searchText={enrollSearchText} 
+              setSearchText={setEnrollSearchText}
             />
           </div>
 
           <div className="data-table-container">
             <table className="data-table">
-              <TableHeader columns={enrollColumns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
+              <TableHeader columns={enrollColumns} sortCol={enrollSortCol} sortDir={enrollSortDir} onSort={handleEnrollSort} />
               <tbody>
-                {filteredEnrollments.length === 0 ? (
+                {enrollLoading ? (
+                  <tr>
+                    <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      Loading mess enrollments...
+                    </td>
+                  </tr>
+                ) : enrollList.length === 0 ? (
                   <tr>
                     <td colSpan={4} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No mess enrollment records found matching your filter.
                     </td>
                   </tr>
                 ) : (
-                  paginatedData.map((enr) => {
+                  enrollList.map((enr) => {
                     const sId = enr.StudentID || (enr as any).student_id;
                     const name = `${enr.FirstName || ''} ${enr.LastName || ''}`.trim() || enr.StudentName || sId;
                     return (
@@ -269,11 +325,11 @@ export const MessTab: React.FC<MessTabProps> = ({
               </tbody>
             </table>
             <PaginationFooter
-              currentPage={currentPage}
-              totalPages={totalPages}
-              setCurrentPage={setCurrentPage}
-              itemsPerPage={itemsPerPage}
-              totalItems={filteredEnrollments.length}
+              currentPage={enrollPage}
+              totalPages={Math.ceil(enrollTotalRecords / enrollItemsPerPage) || 1}
+              setCurrentPage={setEnrollPage}
+              itemsPerPage={enrollItemsPerPage}
+              totalItems={enrollTotalRecords}
             />
           </div>
         </div>
@@ -314,9 +370,10 @@ export const MessTab: React.FC<MessTabProps> = ({
             setViewingEnrollment(null);
             handleOpenEditEnrollment(enr);
           }}
-          onDelete={(id) => {
+          onDelete={async (id) => {
             setViewingEnrollment(null);
-            onDeleteEnrollment(id);
+            await onDeleteEnrollment(id);
+            fetchEnrollments();
           }}
         />
       )}
@@ -327,7 +384,10 @@ export const MessTab: React.FC<MessTabProps> = ({
           enrollment={editingEnrollment}
           students={students}
           messes={messes}
-          onSave={onSaveEnrollment}
+          onSave={async (data, isEdit) => {
+            await onSaveEnrollment(data, isEdit);
+            fetchEnrollments();
+          }}
           onClose={() => setShowEnrollModal(false)}
         />
       )}

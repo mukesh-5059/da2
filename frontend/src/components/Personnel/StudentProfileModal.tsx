@@ -47,10 +47,10 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
       setLoading(true);
       Promise.all([
         api.getGuardians(sId),
-        api.getAllocations(),
+        api.getAllocations({ student_id: sId }),
         api.getMessEnrollments(sId),
         api.getMonthlyBills(sId),
-        api.getPaymentTransactions(),
+        api.getPaymentTransactions({ student_id: sId }),
       ])
         .then(([gRes, aRes, mRes, bRes, pRes]) => {
           const gList = unwrap<Guardian>(gRes);
@@ -60,10 +60,10 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
           const pList = unwrap<PaymentTransaction>(pRes);
 
           setGuardians(gList);
-          setAllocations(aList.filter((a) => (a.StudentID || (a as any).student_id) === sId));
+          setAllocations(aList);
           setMessEnrollments(mList);
           setBills(bList);
-          setTransactions(pList.filter((p) => (p.StudentID || (p as any).student_id) === sId));
+          setTransactions(pList);
         })
         .catch(console.error)
         .finally(() => setLoading(false));

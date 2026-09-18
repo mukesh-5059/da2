@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Package,
   Truck,
@@ -13,6 +13,7 @@ import {
   Building2,
   DollarSign
 } from 'lucide-react';
+import { api } from '../../services/api';
 import { EditSupplierModal } from './EditSupplierModal';
 import { EditInventoryItemModal } from './EditInventoryItemModal';
 import { EditStockModal } from './EditStockModal';
@@ -24,7 +25,7 @@ import {
   InventoryStock,
   ProcurementEvent
 } from '../../types';
-import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
 import { PaginationFooter } from '../PaginationFooter';
@@ -33,8 +34,8 @@ interface InventoryTabProps {
   messes: Mess[];
   suppliers: Supplier[];
   inventoryItems: InventoryItem[];
-  inventoryStock: InventoryStock[];
-  procurementEvents: ProcurementEvent[];
+  inventoryStock?: InventoryStock[];
+  procurementEvents?: ProcurementEvent[];
   onSaveSupplier: (data: Partial<Supplier>, isEdit: boolean) => Promise<void>;
   onDeleteSupplier: (id: string) => Promise<void>;
   onSaveInventoryItem: (data: Partial<InventoryItem>, isEdit: boolean) => Promise<void>;
@@ -119,32 +120,136 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   };
 
   const stockColumns: ColumnDef<InventoryStock>[] = [
-    { key: 'MessFacility', label: 'Mess Facility', getValue: s => s.MessName || s.MessID },
+    { key: 'MessName', label: 'Mess Facility', getValue: s => s.MessName || s.MessID },
     { key: 'ItemName', label: 'Item Name', getValue: s => s.ItemName || s.ItemID },
     { key: 'Category', label: 'Category', getValue: s => s.Category || 'General' },
-    { key: 'Quantity', label: 'Quantity', getValue: s => s.CurrentQuantity },
+    { key: 'CurrentQuantity', label: 'Quantity', getValue: s => s.CurrentQuantity },
     { key: 'Unit', label: 'Unit', getValue: s => s.Unit || 'units' },
-    { key: 'LastUpdated', label: 'Last Updated', getValue: s => s.LastUpdatedDate },
+    { key: 'LastUpdatedDate', label: 'Last Updated', getValue: s => s.LastUpdatedDate },
     { key: 'actions', label: 'Actions', sortable: false }
   ];
+
+  const [stockList, setStockList] = useState<InventoryStock[]>([]);
+  const [stockTotalRecords, setStockTotalRecords] = useState(0);
+  const [stockLoading, setStockLoading] = useState(false);
+  const [stockPage, setStockPage] = useState(1);
+  const [stockSearchCol, setStockSearchCol] = useState('all');
+  const [stockSearchText, setStockSearchText] = useState('');
+  const [stockSortCol, setStockSortCol] = useState<string | null>(null);
+  const [stockSortDir, setStockSortDir] = useState<'asc' | 'desc'>('asc');
+  const stockItemsPerPage = 25;
+
+  const loadStockData = async () => {
+    setStockLoading(true);
+    try {
+      const params: any = {
+        page: stockPage,
+        limit: stockItemsPerPage,
+        search: stockSearchText.trim(),
+        sortCol: stockSortCol || '',
+        sortDir: stockSortDir,
+      };
+      if (selectedMessFilter !== 'ALL') {
+        params.mess_id = selectedMessFilter;
+      }
+      const res: any = await api.getInventoryStock(params);
+      if (res && typeof res === 'object' && 'totalRecords' in res) {
+        setStockList(res.data || []);
+        setStockTotalRecords(Number(res.totalRecords) || 0);
+      } else if (Array.isArray(res)) {
+        setStockList(res);
+        setStockTotalRecords(res.length);
+      }
+    } catch (e) {
+      console.error('Failed to load inventory stock', e);
+    } finally {
+      setStockLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setStockPage(1);
+  }, [stockSearchText, stockSortCol, stockSortDir, selectedMessFilter]);
+
+  useEffect(() => {
+    loadStockData();
+  }, [stockPage, stockSearchText, stockSortCol, stockSortDir, selectedMessFilter]);
+
+  const handleStockSort = (key: string) => {
+    if (stockSortCol === key) {
+      setStockSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setStockSortCol(key);
+      setStockSortDir('asc');
+    }
+  };
 
   const procurementColumns: ColumnDef<ProcurementEvent>[] = [
     { key: 'PurchaseID', label: 'Purchase ID', getValue: p => p.PurchaseID },
-    { key: 'MessFacility', label: 'Mess Facility', getValue: p => p.MessName || p.MessID },
-    { key: 'Supplier', label: 'Supplier', getValue: p => p.SupplierName || p.SupplierID },
-    { key: 'Item', label: 'Item', getValue: p => p.ItemName || p.ItemID },
+    { key: 'MessName', label: 'Mess Facility', getValue: p => p.MessName || p.MessID },
+    { key: 'SupplierName', label: 'Supplier', getValue: p => p.SupplierName || p.SupplierID },
+    { key: 'ItemName', label: 'Item', getValue: p => p.ItemName || p.ItemID },
     { key: 'Quantity', label: 'Quantity', getValue: p => p.Quantity },
     { key: 'UnitPrice', label: 'Unit Price', getValue: p => p.UnitPrice },
     { key: 'TotalCost', label: 'Total Cost', getValue: p => p.TotalCost },
-    { key: 'Date', label: 'Date', getValue: p => p.PurchaseDate },
+    { key: 'PurchaseDate', label: 'Date', getValue: p => p.PurchaseDate },
     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
-  const stockMessFiltered = inventoryStock.filter(s => selectedMessFilter === 'ALL' || s.MessID === selectedMessFilter);
-  const procurementMessFiltered = procurementEvents.filter(p => selectedMessFilter === 'ALL' || p.MessID === selectedMessFilter);
+  const [procList, setProcList] = useState<ProcurementEvent[]>([]);
+  const [procTotalRecords, setProcTotalRecords] = useState(0);
+  const [procLoading, setProcLoading] = useState(false);
+  const [procPage, setProcPage] = useState(1);
+  const [procSearchCol, setProcSearchCol] = useState('all');
+  const [procSearchText, setProcSearchText] = useState('');
+  const [procSortCol, setProcSortCol] = useState<string | null>(null);
+  const [procSortDir, setProcSortDir] = useState<'asc' | 'desc'>('asc');
+  const procItemsPerPage = 25;
 
-  const stockTable = useTableFeatures(stockMessFiltered, stockColumns);
-  const procurementTable = useTableFeatures(procurementMessFiltered, procurementColumns);
+  const loadProcurementData = async () => {
+    setProcLoading(true);
+    try {
+      const params: any = {
+        page: procPage,
+        limit: procItemsPerPage,
+        search: procSearchText.trim(),
+        sortCol: procSortCol || '',
+        sortDir: procSortDir,
+      };
+      if (selectedMessFilter !== 'ALL') {
+        params.mess_id = selectedMessFilter;
+      }
+      const res: any = await api.getProcurementEvents(params);
+      if (res && typeof res === 'object' && 'totalRecords' in res) {
+        setProcList(res.data || []);
+        setProcTotalRecords(Number(res.totalRecords) || 0);
+      } else if (Array.isArray(res)) {
+        setProcList(res);
+        setProcTotalRecords(res.length);
+      }
+    } catch (e) {
+      console.error('Failed to load procurement events', e);
+    } finally {
+      setProcLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setProcPage(1);
+  }, [procSearchText, procSortCol, procSortDir, selectedMessFilter]);
+
+  useEffect(() => {
+    loadProcurementData();
+  }, [procPage, procSearchText, procSortCol, procSortDir, selectedMessFilter]);
+
+  const handleProcSort = (key: string) => {
+    if (procSortCol === key) {
+      setProcSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setProcSortCol(key);
+      setProcSortDir('asc');
+    }
+  };
 
   // Filtered Items
   const filteredItems = inventoryItems.filter((item) => {
@@ -175,7 +280,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           onClick={() => setActiveSubTab('stock')}
         >
           <Package size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Pantry Stock Levels ({inventoryStock.length})
+          Pantry Stock Levels ({stockTotalRecords})
         </button>
 
         <button
@@ -191,7 +296,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           onClick={() => setActiveSubTab('procurement')}
         >
           <ShoppingCart size={15} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-          Procurement Events ({procurementEvents.length})
+          Procurement Events ({procTotalRecords})
         </button>
 
         <button
@@ -222,10 +327,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           <div style={{ marginBottom: '16px' }}>
             <TableControls 
               columns={stockColumns} 
-              searchCol={stockTable.searchCol} 
-              setSearchCol={stockTable.setSearchCol} 
-              searchText={stockTable.searchText} 
-              setSearchText={stockTable.setSearchText}
+              searchCol={stockSearchCol} 
+              setSearchCol={setStockSearchCol} 
+              searchText={stockSearchText} 
+              setSearchText={setStockSearchText}
             >
               <select
                 value={selectedMessFilter}
@@ -244,16 +349,22 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
           <div className="data-table-container">
             <table className="data-table">
-              <TableHeader columns={stockColumns} sortCol={stockTable.sortCol} sortDir={stockTable.sortDir} onSort={stockTable.handleSort} />
+              <TableHeader columns={stockColumns} sortCol={stockSortCol} sortDir={stockSortDir} onSort={handleStockSort} />
               <tbody>
-                {stockTable.processedData.length === 0 ? (
+                {stockLoading ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      Loading pantry stock levels...
+                    </td>
+                  </tr>
+                ) : stockList.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No inventory stock entries found.
                     </td>
                   </tr>
                 ) : (
-                  stockTable.paginatedData.map((s) => {
+                  stockList.map((s) => {
                     return (
                       <tr key={`${s.MessID}-${s.ItemID}`}>
                         <td>
@@ -275,7 +386,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                         <td style={{ textAlign: 'right' }}>
                           <button
                             style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px' }}
-                            onClick={() => onDeleteStock(s.MessID, s.ItemID)}
+                            onClick={async () => {
+                              await onDeleteStock(s.MessID, s.ItemID);
+                              loadStockData();
+                            }}
                             title="Delete Stock Entry"
                           >
                             <Trash2 size={15} />
@@ -288,11 +402,11 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               </tbody>
             </table>
             <PaginationFooter
-              currentPage={stockTable.currentPage}
-              totalPages={stockTable.totalPages}
-              setCurrentPage={stockTable.setCurrentPage}
-              itemsPerPage={stockTable.itemsPerPage}
-              totalItems={stockTable.processedData.length}
+              currentPage={stockPage}
+              totalPages={Math.ceil(stockTotalRecords / stockItemsPerPage) || 1}
+              setCurrentPage={setStockPage}
+              itemsPerPage={stockItemsPerPage}
+              totalItems={stockTotalRecords}
             />
           </div>
         </div>
@@ -392,10 +506,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           <div style={{ marginBottom: '16px' }}>
             <TableControls 
               columns={procurementColumns} 
-              searchCol={procurementTable.searchCol} 
-              setSearchCol={procurementTable.setSearchCol} 
-              searchText={procurementTable.searchText} 
-              setSearchText={procurementTable.setSearchText}
+              searchCol={procSearchCol} 
+              setSearchCol={setProcSearchCol} 
+              searchText={procSearchText} 
+              setSearchText={setProcSearchText}
             >
               <select
                 value={selectedMessFilter}
@@ -414,16 +528,22 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
           <div className="data-table-container">
             <table className="data-table">
-              <TableHeader columns={procurementColumns} sortCol={procurementTable.sortCol} sortDir={procurementTable.sortDir} onSort={procurementTable.handleSort} />
+              <TableHeader columns={procurementColumns} sortCol={procSortCol} sortDir={procSortDir} onSort={handleProcSort} />
               <tbody>
-                {procurementTable.processedData.length === 0 ? (
+                {procLoading ? (
+                  <tr>
+                    <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      Loading procurement events...
+                    </td>
+                  </tr>
+                ) : procList.length === 0 ? (
                   <tr>
                     <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No procurement events recorded.
                     </td>
                   </tr>
                 ) : (
-                  procurementTable.paginatedData.map((p) => (
+                  procList.map((p) => (
                     <tr key={p.PurchaseID}>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{p.PurchaseID}</td>
                       <td>{p.MessName || p.MessID}</td>
@@ -447,7 +567,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                         </button>
                         <button
                           style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer' }}
-                          onClick={() => onDeleteProcurement(p.PurchaseID)}
+                          onClick={async () => {
+                            await onDeleteProcurement(p.PurchaseID);
+                            loadProcurementData();
+                          }}
                           title="Delete Procurement"
                         >
                           <Trash2 size={14} />
@@ -459,11 +582,11 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               </tbody>
             </table>
             <PaginationFooter
-              currentPage={procurementTable.currentPage}
-              totalPages={procurementTable.totalPages}
-              setCurrentPage={procurementTable.setCurrentPage}
-              itemsPerPage={procurementTable.itemsPerPage}
-              totalItems={procurementTable.processedData.length}
+              currentPage={procPage}
+              totalPages={Math.ceil(procTotalRecords / procItemsPerPage) || 1}
+              setCurrentPage={setProcPage}
+              itemsPerPage={procItemsPerPage}
+              totalItems={procTotalRecords}
             />
           </div>
         </div>
@@ -552,7 +675,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
         <EditStockModal
           messes={messes}
           inventoryItems={inventoryItems}
-          onSave={onSaveStock}
+          onSave={async (data) => {
+            await onSaveStock(data);
+            loadStockData();
+          }}
           onClose={() => setShowStockModal(false)}
         />
       )}
@@ -564,7 +690,10 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
           messes={messes}
           suppliers={suppliers}
           inventoryItems={inventoryItems}
-          onSave={onSaveProcurement}
+          onSave={async (data, isEdit) => {
+            await onSaveProcurement(data, isEdit);
+            loadProcurementData();
+          }}
           onClose={() => setShowProcurementModal(false)}
         />
       )}

@@ -110,7 +110,7 @@ export const mockApi = {
   updateRoom: (roomNo: string, data: Partial<Room>) => success(),
   deleteRoom: (roomNo: string) => success(),
 
-  getAllocations: (roomNo?: string) => delayed(roomNo ? allocations.filter(a => a.RoomNo === roomNo) : [...allocations]),
+  getAllocations: (params?: any) => delayed(typeof params === 'string' ? allocations.filter(a => a.RoomNo === params) : params?.student_id ? allocations.filter(a => a.StudentID === params.student_id) : [...allocations]),
   createAllocation: (data: Partial<RoomAllocation>) => success(),
   updateAllocation: (id: string, data: Partial<RoomAllocation>) => success(),
   deleteAllocation: (id: string) => success(),
@@ -121,6 +121,7 @@ export const mockApi = {
   deleteWarden: (id: string) => success(),
 
   getStudents: () => delayed([...students]),
+  getStudent: (id: string) => delayed(students.find(s => s.StudentID === id) || students[0]),
   createStudent: (data: Partial<Student>) => success(),
   updateStudent: (id: string, data: Partial<Student>) => success(),
   deleteStudent: (id: string) => success(),
@@ -150,7 +151,7 @@ export const mockApi = {
   updateMessSchedule: (id: string, data: Partial<MessSchedule>) => success(),
   deleteMessSchedule: (id: string) => success(),
 
-  getMessEnrollments: (studentId?: string) => delayed(studentId ? enrollments.filter(e => e.StudentID === studentId) : [...enrollments]),
+  getMessEnrollments: (params?: any) => delayed(typeof params === 'string' ? enrollments.filter(e => e.StudentID === params) : (params?.student_id ? enrollments.filter(e => e.StudentID === params.student_id) : [...enrollments])),
   createMessEnrollment: (data: Partial<MessEnrollment>) => success(),
   updateMessEnrollment: (id: string, data: Partial<MessEnrollment>) => success(),
   deleteMessEnrollment: (id: string) => success(),
@@ -160,10 +161,16 @@ export const mockApi = {
   updateMonthlyBill: (billId: string, data: Partial<MonthlyBill>) => success(),
   deleteMonthlyBill: (billId: string) => success(),
 
-  getPaymentTransactions: (billId?: string, paymentMode?: string) => delayed([...transactions]),
+  getPaymentTransactions: (params?: any, paymentMode?: string) => delayed([...transactions]),
   createPaymentTransaction: (data: Partial<PaymentTransaction>) => success(),
   updatePaymentTransaction: (paymentId: string, data: Partial<PaymentTransaction>) => success(),
   deletePaymentTransaction: (paymentId: string) => success(),
+  getFinancialStats: () => delayed({
+    totalPendingAmount: 428850.0,
+    totalOverdueAmount: 428850.0,
+    pendingStudentsCount: 66,
+    overdueStudentsCount: 66
+  }),
 
   getSuppliers: () => delayed([...suppliers]),
   createSupplier: (data: Partial<Supplier>) => success(),
@@ -175,11 +182,11 @@ export const mockApi = {
   updateInventoryItem: (id: string, data: Partial<InventoryItem>) => success(),
   deleteInventoryItem: (id: string) => success(),
 
-  getInventoryStock: (messId?: string) => delayed([...inventoryStock]),
+  getInventoryStock: (params?: any) => delayed(typeof params === 'string' ? inventoryStock.filter(s => s.MessID === params) : (params?.mess_id ? inventoryStock.filter(s => s.MessID === params.mess_id) : [...inventoryStock])),
   upsertInventoryStock: (data: Partial<InventoryStock>) => success(),
   deleteInventoryStock: (messId: string, itemId: string) => success(),
 
-  getProcurementEvents: (messId?: string, supplierId?: string) => delayed([...procurementEvents]),
+  getProcurementEvents: (params?: any, supplierId?: string) => delayed(typeof params === 'string' ? procurementEvents.filter(p => p.MessID === params) : (params?.mess_id ? procurementEvents.filter(p => p.MessID === params.mess_id) : [...procurementEvents])),
   createProcurementEvent: (data: Partial<ProcurementEvent>) => success(),
   updateProcurementEvent: (id: string, data: Partial<ProcurementEvent>) => success(),
   deleteProcurementEvent: (id: string) => success(),

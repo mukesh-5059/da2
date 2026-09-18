@@ -70,8 +70,18 @@ export const App: React.FC = () => {
     setTimeout(() => setErrorMessage(null), 4000);
   };
 
-  const handleSelectStudentById = (studentId: string) => {
-    const s = students.find((st) => (st.StudentID || (st as any).student_id) === studentId);
+  const handleSelectStudentById = async (studentId: string) => {
+    let s = students.find((st) => (st.StudentID || (st as any).student_id) === studentId);
+    if (!s) {
+      try {
+        const fetched = await api.getStudent(studentId);
+        if (fetched && (fetched.StudentID || (fetched as any).student_id)) {
+          s = fetched;
+        }
+      } catch (err) {
+        console.error('Failed to fetch student profile', err);
+      }
+    }
     if (s) {
       setSelectedStudentForProfile(s);
     } else {
@@ -86,7 +96,7 @@ export const App: React.FC = () => {
     if (!m) {
       try {
         const allMessesRes = await api.getMesses();
-        const allMesses = allMessesRes?.data || allMessesRes || [];
+        const allMesses = (Array.isArray(allMessesRes) ? allMessesRes : (allMessesRes as any)?.data) || [];
         m = (allMesses as Mess[]).find(x => x.MessID === messId || (x as any).mess_id === messId);
       } catch (e) {
         console.error('Failed to load mess details');
@@ -143,48 +153,35 @@ export const App: React.FC = () => {
           const rList = await api.getRooms(selectedHostelId);
           setRooms(unwrap(rList));
         } else if (subTab === 'allocations') {
-          const [aList, sList] = await Promise.all([api.getAllocations(), api.getStudents()]);
-          setAllocations(unwrap(aList));
+          const [rList, sList] = await Promise.all([api.getRooms(), api.getStudents({ limit: 100 })]);
+          setRooms(unwrap(rList));
           setStudents(unwrap(sList));
         }
       } else if (activeNavTab === 'personnel') {
-        const [sList, stList] = await Promise.all([api.getStudents(), api.getStaff()]);
-        setStudents(unwrap(sList));
+        const stList = await api.getStaff();
         setStaff(unwrap(stList));
       } else if (activeNavTab === 'mess') {
-        const [mList, mlList, schList, enrList, sList] = await Promise.all([
+        const [mList, mlList, schList, sList] = await Promise.all([
           api.getMesses(),
           api.getMeals(),
           api.getMessSchedules(),
-          api.getMessEnrollments(),
-          api.getStudents(),
+          api.getStudents({ limit: 100 }),
         ]);
         setMesses(unwrap(mList));
         setMeals(unwrap(mlList));
         setSchedules(unwrap(schList));
-        setMessEnrollments(unwrap(enrList));
         setStudents(unwrap(sList));
       } else if (activeNavTab === 'inventory') {
-        const [supList, itmList, stkList, procList, mList] = await Promise.all([
+        const [supList, itmList, mList] = await Promise.all([
           api.getSuppliers(),
           api.getInventoryItems(),
-          api.getInventoryStock(),
-          api.getProcurementEvents(),
           api.getMesses(),
         ]);
         setSuppliers(unwrap(supList));
         setInventoryItems(unwrap(itmList));
-        setInventoryStock(unwrap(stkList));
-        setProcurementEvents(unwrap(procList));
         setMesses(unwrap(mList));
       } else if (activeNavTab === 'financials') {
-        const [bList, tList, sList] = await Promise.all([
-          api.getMonthlyBills(),
-          api.getPaymentTransactions(),
-          api.getStudents(),
-        ]);
-        setBills(unwrap(bList));
-        setTransactions(unwrap(tList));
+        const sList = await api.getStudents({ limit: 100 });
         setStudents(unwrap(sList));
       }
     } catch (err: any) {

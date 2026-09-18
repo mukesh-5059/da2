@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Student } from '../../types';
 import { Plus, Edit2, Trash2, Phone, Mail, GraduationCap, Heart, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { api } from '../../services/api';
+import { ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
 import { PaginationFooter } from '../PaginationFooter';
 
 interface StudentsTabProps {
-  students: Student[];
+  students?: Student[];
   onSaveStudent: (data: Partial<Student>, isEdit: boolean) => Promise<void>;
   onDeleteStudent: (id: string) => Promise<void>;
   onViewGuardians: (student: Student) => void;
@@ -33,7 +34,56 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(students, columns);
+  const [studentList, setStudentList] = useState<Student[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchCol, setSearchCol] = useState('all');
+  const [searchText, setSearchText] = useState('');
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const itemsPerPage = 25;
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const res: any = await api.getStudents({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchText.trim(),
+        sortCol: sortCol || '',
+        sortDir: sortDir,
+      });
+      if (res && typeof res === 'object' && 'totalRecords' in res) {
+        setStudentList(res.data || []);
+        setTotalRecords(Number(res.totalRecords) || 0);
+      } else if (Array.isArray(res)) {
+        setStudentList(res);
+        setTotalRecords(res.length);
+      }
+    } catch (e) {
+      console.error('Failed to load students', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, sortCol, sortDir]);
+
+  useEffect(() => {
+    loadData();
+  }, [currentPage, searchText, sortCol, sortDir]);
+
+  const handleSort = (key: string) => {
+    if (sortCol === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(key);
+      setSortDir('asc');
+    }
+  };
 
   const [formData, setFormData] = useState<Partial<Student>>({
     StudentID: '',
@@ -89,6 +139,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
     e.preventDefault();
     await onSaveStudent(formData, !!editingStudent);
     setShowModal(false);
+    loadData();
   };
 
 
@@ -122,72 +173,80 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
         </div>
       </div>
 
-      {processedData.length === 0 ? (
-        <div className="card-glass" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          No resident students found matching search criteria.
-        </div>
-      ) : (
       <div className="data-table-container">
         <table className="data-table">
           <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
-            {paginatedData.map((student) => {
-              const sId = student.StudentID || (student as any).student_id;
-              const fName = student.FirstName || (student as any).name || (student as any).FirstName || '';
-              const lName = student.LastName || '';
-              const dept = student.Department || (student as any).department || 'CSE';
-              const phone = student.Phone || (student as any).phone || '';
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  Loading students...
+                </td>
+              </tr>
+            ) : studentList.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  No resident students found matching search criteria.
+                </td>
+              </tr>
+            ) : (
+              studentList.map((student) => {
+                const sId = student.StudentID || (student as any).student_id;
+                const fName = student.FirstName || (student as any).name || (student as any).FirstName || '';
+                const lName = student.LastName || '';
+                const dept = student.Department || (student as any).department || 'CSE';
+                const phone = student.Phone || (student as any).phone || '';
 
-              return (
-                <tr key={sId} style={{ cursor: 'pointer' }} onClick={() => onSelectStudent?.(student)}>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                    {sId}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fName} {lName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.Email || (student as any).email || ''}</div>
-                  </td>
-                  <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <GraduationCap size={14} style={{ color: 'var(--accent-primary)' }} />
-                      {dept}
-                    </span>
-                  </td>
-                  <td>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <Phone size={13} style={{ color: 'var(--text-muted)' }} />
-                      {phone || 'N/A'}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${student.IsActive !== 0 ? 'badge-vacant' : 'badge-maint'}`}>
-                      {student.IsActive !== 0 ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 12px', fontSize: '0.75rem' }}
-                      onClick={() => onSelectStudent?.(student)}
-                    >
-                      View Profile
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                return (
+                  <tr key={sId} style={{ cursor: 'pointer' }} onClick={() => onSelectStudent?.(student)}>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                      {sId}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{fName} {lName}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{student.Email || (student as any).email || ''}</div>
+                    </td>
+                    <td>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <GraduationCap size={14} style={{ color: 'var(--accent-primary)' }} />
+                        {dept}
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-primary)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <Phone size={13} style={{ color: 'var(--text-muted)' }} />
+                        {phone || 'N/A'}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`badge ${student.IsActive !== 0 ? 'badge-vacant' : 'badge-maint'}`}>
+                        {student.IsActive !== 0 ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+                        onClick={() => onSelectStudent?.(student)}
+                      >
+                        View Profile
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
 
         <PaginationFooter
           currentPage={currentPage}
-          totalPages={totalPages}
+          totalPages={Math.ceil(totalRecords / itemsPerPage) || 1}
           setCurrentPage={setCurrentPage}
           itemsPerPage={itemsPerPage}
-          totalItems={processedData.length}
+          totalItems={totalRecords}
         />
       </div>
-      )}
 
       {showModal && (
         <div className="modal-backdrop" onClick={() => setShowModal(false)}>

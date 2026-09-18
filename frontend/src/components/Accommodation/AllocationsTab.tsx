@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RoomAllocation, Student, Room } from '../../types';
 import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2, User, Building, GraduationCap, X } from 'lucide-react';
-import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { api } from '../../services/api';
+import { ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
 import { PaginationFooter } from '../PaginationFooter';
 
 interface AllocationsTabProps {
-  allocations: RoomAllocation[];
+  allocations?: RoomAllocation[];
   students: Student[];
   rooms: Room[];
   onAllocate: (data: Partial<RoomAllocation>, isEdit?: boolean) => Promise<void>;
@@ -40,7 +41,56 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(allocations, columns);
+  const [allocList, setAllocList] = useState<RoomAllocation[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchCol, setSearchCol] = useState('all');
+  const [searchText, setSearchText] = useState('');
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const itemsPerPage = 25;
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const res: any = await api.getAllocations({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchText.trim(),
+        sortCol: sortCol || '',
+        sortDir: sortDir,
+      });
+      if (res && typeof res === 'object' && 'totalRecords' in res) {
+        setAllocList(res.data || []);
+        setTotalRecords(Number(res.totalRecords) || 0);
+      } else if (Array.isArray(res)) {
+        setAllocList(res);
+        setTotalRecords(res.length);
+      }
+    } catch (e) {
+      console.error('Failed to load room allocations', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, sortCol, sortDir]);
+
+  useEffect(() => {
+    loadData();
+  }, [currentPage, searchText, sortCol, sortDir]);
+
+  const handleSort = (key: string) => {
+    if (sortCol === key) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortCol(key);
+      setSortDir('asc');
+    }
+  };
 
   const [formData, setFormData] = useState<Partial<RoomAllocation>>({
     AllocationID: `ALLOC-${Date.now().toString().slice(-4)}`,
@@ -81,6 +131,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
     e.preventDefault();
     await onAllocate(formData, !!editingAlloc);
     setShowModal(false);
+    loadData();
   };
 
   return (
@@ -112,71 +163,85 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
         <table className="data-table">
           <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
-            {paginatedData.map((alloc) => {
-              const allocId = alloc.AllocationID || (alloc as any).allocation_id;
-              const isActive = !alloc.CheckOutDate;
-              const sId = alloc.StudentID || (alloc as any).student_id;
-              const studentName = alloc.StudentName || sId;
+            {loading ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  Loading room allocations...
+                </td>
+              </tr>
+            ) : allocList.length === 0 ? (
+              <tr>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                  No room allocations match the search query.
+                </td>
+              </tr>
+            ) : (
+              allocList.map((alloc) => {
+                const allocId = alloc.AllocationID || (alloc as any).allocation_id;
+                const isActive = !alloc.CheckOutDate;
+                const sId = alloc.StudentID || (alloc as any).student_id;
+                const studentName = alloc.StudentName || sId;
 
-              return (
-                <tr key={allocId} style={{ cursor: 'pointer' }} onClick={() => setSelectedAllocId(allocId)}>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                    {allocId}
-                  </td>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{studentName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {sId}</div>
-                  </td>
-                  <td
-                    style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700, cursor: onSelectRoom ? 'pointer' : 'default' }}
-                    onClick={(e) => {
-                      if (onSelectRoom) {
-                        e.stopPropagation();
-                        onSelectRoom(alloc.RoomNo);
-                      }
-                    }}
-                    title="Inspect Room Details"
-                  >
-                    {alloc.RoomNo}
-                  </td>
-                  <td>{alloc.AcademicYear} ({alloc.Semester})</td>
-                  <td>
-                    {isActive ? (
-                      <span className="badge badge-vacant" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <CheckCircle size={12} /> Active
-                      </span>
-                    ) : (
-                      <span className="badge" style={{ background: 'rgba(107, 114, 128, 0.2)', color: '#9ca3af' }}>
-                        Checked Out
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 12px', fontSize: '0.75rem' }}
-                      onClick={() => setSelectedAllocId(allocId)}
+                return (
+                  <tr key={allocId} style={{ cursor: 'pointer' }} onClick={() => setSelectedAllocId(allocId)}>
+                    <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--accent-primary)' }}>
+                      {allocId}
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{studentName}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ID: {sId}</div>
+                    </td>
+                    <td
+                      style={{ fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700, cursor: onSelectRoom ? 'pointer' : 'default' }}
+                      onClick={(e) => {
+                        if (onSelectRoom) {
+                          e.stopPropagation();
+                          onSelectRoom(alloc.RoomNo);
+                        }
+                      }}
+                      title="Inspect Room Details"
                     >
-                      <UserCheck size={13} /> View Details
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+                      {alloc.RoomNo}
+                    </td>
+                    <td>{alloc.AcademicYear} ({alloc.Semester})</td>
+                    <td>
+                      {isActive ? (
+                        <span className="badge badge-vacant" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle size={12} /> Active
+                        </span>
+                      ) : (
+                        <span className="badge" style={{ background: 'rgba(107, 114, 128, 0.2)', color: '#9ca3af' }}>
+                          Checked Out
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        className="btn btn-secondary"
+                        style={{ padding: '4px 12px', fontSize: '0.75rem' }}
+                        onClick={() => setSelectedAllocId(allocId)}
+                      >
+                        <UserCheck size={13} /> View Details
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
         <PaginationFooter
           currentPage={currentPage}
-          totalPages={totalPages}
+          totalPages={Math.ceil(totalRecords / itemsPerPage) || 1}
           setCurrentPage={setCurrentPage}
           itemsPerPage={itemsPerPage}
-          totalItems={processedData.length}
+          totalItems={totalRecords}
         />
       </div>
 
       {/* Allocation Detail Popup Modal */}
       {selectedAllocId && (() => {
-        const alloc = allocations.find(a => (a.AllocationID || (a as any).allocation_id) === selectedAllocId);
+        const alloc = allocList.find(a => (a.AllocationID || (a as any).allocation_id) === selectedAllocId) || (allocations || []).find(a => (a.AllocationID || (a as any).allocation_id) === selectedAllocId);
         if (!alloc) return null;
         const allocId = alloc.AllocationID || (alloc as any).allocation_id;
         const isActive = !alloc.CheckOutDate;
@@ -368,12 +433,12 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
                   <Edit2 size={14} /> Edit
                 </button>
                 {isActive && (
-                  <button className="btn btn-secondary" style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)' }} onClick={() => { setSelectedAllocId(null); onCheckOut(allocId); }}>
+                  <button className="btn btn-secondary" style={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.3)' }} onClick={async () => { setSelectedAllocId(null); await onCheckOut(allocId); loadData(); }}>
                     <LogOut size={14} /> Check Out
                   </button>
                 )}
                 {onDeleteAllocation && (
-                  <button className="btn btn-danger" onClick={() => { setSelectedAllocId(null); onDeleteAllocation(allocId); }}>
+                  <button className="btn btn-danger" onClick={async () => { setSelectedAllocId(null); await onDeleteAllocation(allocId); loadData(); }}>
                     <Trash2 size={14} /> Delete
                   </button>
                 )}

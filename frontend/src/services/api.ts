@@ -1,4 +1,4 @@
-import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Guardian, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction, Supplier, InventoryItem, InventoryStock, ProcurementEvent } from '../types';
+import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Guardian, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction, FinancialStats, Supplier, InventoryItem, InventoryStock, ProcurementEvent } from '../types';
 
 import { mockApi } from './mockApi';
 
@@ -166,6 +166,10 @@ const realApi = {
   getStudents: async (params?: any): Promise<{data: Student[], totalRecords: number} | Student[]> => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
     const res = await fetch(`${API_BASE}/students${qs}`);
+    return handleResponse(res);
+  },
+  getStudent: async (id: string): Promise<Student> => {
+    const res = await fetch(`${API_BASE}/students/${id}`);
     return handleResponse(res);
   },
   createStudent: async (data: Partial<Student>): Promise<{ message: string }> => {
@@ -440,6 +444,10 @@ const realApi = {
   },
   deletePaymentTransaction: async (paymentId: string): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/payment-transactions/${paymentId}`, { method: 'DELETE' });
+    return handleResponse(res);
+  },
+  getFinancialStats: async (): Promise<FinancialStats> => {
+    const res = await fetch(`${API_BASE}/financials/stats`);
     return handleResponse(res);
   },
 

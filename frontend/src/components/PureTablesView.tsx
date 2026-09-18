@@ -13,7 +13,7 @@ interface ColumnDef {
 interface TableConfig {
   name: string;
   primaryKey: string;
-  fetch: () => Promise<any[]>;
+  fetch: (params?: any) => Promise<any>;
   create: (data: any) => Promise<any>;
   update: (id: string, data: any) => Promise<any>;
   delete: (id: string) => Promise<any>;
@@ -377,14 +377,14 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
         sortCol: sortCol || '',
         sortDir: sortDir
       };
-      const res = await activeConfig.fetch(params);
+      const res: any = await activeConfig.fetch(params);
       if (res && typeof res === 'object' && 'totalRecords' in res) {
         setData(res.data);
-        setTotalRecords(res.totalRecords);
+        setTotalRecords(Number(res.totalRecords));
         setIsServerPaginated(true);
       } else {
-        setData(res);
-        setTotalRecords(res.length);
+        setData(Array.isArray(res) ? res : []);
+        setTotalRecords(Array.isArray(res) ? res.length : 0);
         setIsServerPaginated(false);
       }
     } catch (e) {

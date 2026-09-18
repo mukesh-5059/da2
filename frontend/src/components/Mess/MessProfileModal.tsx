@@ -160,7 +160,7 @@ export const MessProfileModal: React.FC<MessProfileModalProps> = ({ mess, onClos
   return (
     <>
       <div className="modal-backdrop" style={{ zIndex: 1050 }} onClick={onClose}>
-        <div className="modal-card" style={{ width: '100%', maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-card" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={(e) => e.stopPropagation()}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
             <div>
               <h3 style={{ fontSize: '1.4rem', marginBottom: '4px' }}>{mess.MessName || (mess as any).name}</h3>
@@ -171,7 +171,7 @@ export const MessProfileModal: React.FC<MessProfileModalProps> = ({ mess, onClos
             <button className="btn btn-secondary" style={{ padding: '6px' }} onClick={onClose}><X size={16} /></button>
           </div>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px', background: 'var(--bg-surface)', padding: '16px', borderRadius: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px', background: 'var(--bg-surface)', padding: '16px', borderRadius: '8px', flexShrink: 0 }}>
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Location</div>
               <div style={{ fontWeight: 600 }}>{mess.Location || 'Main Campus Dining Complex'}</div>
@@ -182,14 +182,14 @@ export const MessProfileModal: React.FC<MessProfileModalProps> = ({ mess, onClos
             </div>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div style={{ marginBottom: '20px', display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
               <h4 style={{ fontSize: '1rem', color: 'var(--text-primary)' }}>Offered Meals</h4>
               <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={handleOpenAddMeal}>
                 <Plus size={13} /> Add Meal
               </button>
             </div>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: '8px', overflowY: 'auto', maxHeight: '280px' }}>
               {loading ? (
                 <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading meals...</div>
               ) : meals.length === 0 ? (
@@ -213,7 +213,7 @@ export const MessProfileModal: React.FC<MessProfileModalProps> = ({ mess, onClos
             </div>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '16px', flexShrink: 0 }}>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-primary" onClick={handleOpenScheduleModal}>
                 <Calendar size={14} /> View Weekly Schedule

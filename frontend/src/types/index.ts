@@ -164,6 +164,13 @@ export interface PaymentTransaction {
   LastName?: string;
 }
 
+export interface FinancialStats {
+  totalPendingAmount: number;
+  totalOverdueAmount: number;
+  pendingStudentsCount: number;
+  overdueStudentsCount: number;
+}
+
 export interface Supplier {
   SupplierID: string;
   SupplierName: string;
