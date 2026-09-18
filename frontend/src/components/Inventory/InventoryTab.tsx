@@ -13,6 +13,10 @@ import {
   Building2,
   DollarSign
 } from 'lucide-react';
+import { EditSupplierModal } from './EditSupplierModal';
+import { EditInventoryItemModal } from './EditInventoryItemModal';
+import { EditStockModal } from './EditStockModal';
+import { EditProcurementModal } from './EditProcurementModal';
 import {
   Mess,
   Supplier,
@@ -60,116 +64,54 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
   // Supplier Modal state
   const [showSupplierModal, setShowSupplierModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-  const [supplierFormData, setSupplierFormData] = useState<Partial<Supplier>>({});
 
   // Item Modal state
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-  const [itemFormData, setItemFormData] = useState<Partial<InventoryItem>>({});
 
   // Stock Modal state
   const [showStockModal, setShowStockModal] = useState(false);
-  const [stockFormData, setStockFormData] = useState<Partial<InventoryStock>>({});
 
   // Procurement Modal state
   const [showProcurementModal, setShowProcurementModal] = useState(false);
   const [editingProcurement, setEditingProcurement] = useState<ProcurementEvent | null>(null);
-  const [procurementFormData, setProcurementFormData] = useState<Partial<ProcurementEvent>>({});
 
   // Supplier Handlers
   const handleOpenAddSupplier = () => {
     setEditingSupplier(null);
-    setSupplierFormData({
-      SupplierID: `SUP_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-      SupplierName: '',
-      Phone: '',
-      Email: '',
-      Address: ''
-    });
     setShowSupplierModal(true);
   };
 
   const handleOpenEditSupplier = (sup: Supplier) => {
     setEditingSupplier(sup);
-    setSupplierFormData({ ...sup });
     setShowSupplierModal(true);
-  };
-
-  const handleSupplierSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSaveSupplier(supplierFormData, !!editingSupplier);
-    setShowSupplierModal(false);
   };
 
   // Item Handlers
   const handleOpenAddItem = () => {
     setEditingItem(null);
-    setItemFormData({
-      ItemID: `ITM_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-      ItemName: '',
-      Category: 'Grains',
-      Unit: 'kg'
-    });
     setShowItemModal(true);
   };
 
   const handleOpenEditItem = (item: InventoryItem) => {
     setEditingItem(item);
-    setItemFormData({ ...item });
     setShowItemModal(true);
-  };
-
-  const handleItemSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSaveInventoryItem(itemFormData, !!editingItem);
-    setShowItemModal(false);
   };
 
   // Stock Handlers
   const handleOpenAddStock = () => {
-    setStockFormData({
-      MessID: messes[0]?.MessID || '',
-      ItemID: inventoryItems[0]?.ItemID || '',
-      CurrentQuantity: 100,
-      LastUpdatedDate: new Date().toISOString().split('T')[0]
-    });
     setShowStockModal(true);
-  };
-
-  const handleStockSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSaveStock(stockFormData);
-    setShowStockModal(false);
   };
 
   // Procurement Handlers
   const handleOpenAddProcurement = () => {
     setEditingProcurement(null);
-    const q = 50;
-    const p = 60;
-    setProcurementFormData({
-      PurchaseID: `PUR_${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-      MessID: messes[0]?.MessID || '',
-      SupplierID: suppliers[0]?.SupplierID || '',
-      ItemID: inventoryItems[0]?.ItemID || '',
-      Quantity: q,
-      UnitPrice: p,
-      TotalCost: q * p,
-      PurchaseDate: new Date().toISOString().split('T')[0]
-    });
     setShowProcurementModal(true);
   };
 
   const handleOpenEditProcurement = (ev: ProcurementEvent) => {
     setEditingProcurement(ev);
-    setProcurementFormData({ ...ev });
     setShowProcurementModal(true);
-  };
-
-  const handleProcurementSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await onSaveProcurement(procurementFormData, !!editingProcurement);
-    setShowProcurementModal(false);
   };
 
   // Filtered Stock
@@ -356,7 +298,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             </div>
           </div>
 
-          <div className="card-glass" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -527,7 +469,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             </div>
           </div>
 
-          <div className="card-glass" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
             <table className="data-table">
               <thead>
                 <tr>
@@ -656,365 +598,42 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
       {/* Supplier Add/Edit Modal */}
       {showSupplierModal && (
-        <div className="modal-backdrop" onClick={() => setShowSupplierModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>
-              {editingSupplier ? 'Edit Supplier' : 'Register New Supplier'}
-            </h3>
-            <form onSubmit={handleSupplierSubmit}>
-              <div className="form-group">
-                <label>Supplier ID</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={supplierFormData.SupplierID || ''}
-                  onChange={(e) => setSupplierFormData({ ...supplierFormData, SupplierID: e.target.value })}
-                  readOnly={!!editingSupplier}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Supplier / Vendor Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Annapurna Agro Traders"
-                  value={supplierFormData.SupplierName || ''}
-                  onChange={(e) => setSupplierFormData({ ...supplierFormData, SupplierName: e.target.value })}
-                  required
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Phone Number</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g. +91 9876543210"
-                    value={supplierFormData.Phone || ''}
-                    onChange={(e) => setSupplierFormData({ ...supplierFormData, Phone: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Email Address</label>
-                  <input
-                    type="email"
-                    className="form-input"
-                    placeholder="e.g. contact@agro.com"
-                    value={supplierFormData.Email || ''}
-                    onChange={(e) => setSupplierFormData({ ...supplierFormData, Email: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Address</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Market Yard, Sector 4"
-                  value={supplierFormData.Address || ''}
-                  onChange={(e) => setSupplierFormData({ ...supplierFormData, Address: e.target.value })}
-                />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowSupplierModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingSupplier ? 'Update Supplier' : 'Save Supplier'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <EditSupplierModal
+          supplier={editingSupplier}
+          onSave={onSaveSupplier}
+          onClose={() => setShowSupplierModal(false)}
+        />
       )}
 
       {/* Item Add/Edit Modal */}
       {showItemModal && (
-        <div className="modal-backdrop" onClick={() => setShowItemModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>
-              {editingItem ? 'Edit Inventory Item' : 'Add Inventory Item'}
-            </h3>
-            <form onSubmit={handleItemSubmit}>
-              <div className="form-group">
-                <label>Item ID</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={itemFormData.ItemID || ''}
-                  onChange={(e) => setItemFormData({ ...itemFormData, ItemID: e.target.value })}
-                  readOnly={!!editingItem}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Item Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Basmati Rice, Toned Milk"
-                  value={itemFormData.ItemName || ''}
-                  onChange={(e) => setItemFormData({ ...itemFormData, ItemName: e.target.value })}
-                  required
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Category</label>
-                  <select
-                    className="form-select"
-                    value={itemFormData.Category || 'Grains'}
-                    onChange={(e) => setItemFormData({ ...itemFormData, Category: e.target.value as any })}
-                  >
-                    <option value="Dairy">Dairy</option>
-                    <option value="Vegetables">Vegetables</option>
-                    <option value="Grains">Grains</option>
-                    <option value="Spices">Spices</option>
-                    <option value="Cleaning">Cleaning</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Measurement Unit</label>
-                  <select
-                    className="form-select"
-                    value={itemFormData.Unit || 'kg'}
-                    onChange={(e) => setItemFormData({ ...itemFormData, Unit: e.target.value as any })}
-                  >
-                    <option value="kg">kg</option>
-                    <option value="litre">litre</option>
-                    <option value="units">units</option>
-                    <option value="packets">packets</option>
-                  </select>
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowItemModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingItem ? 'Update Item' : 'Save Item'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <EditInventoryItemModal
+          item={editingItem}
+          onSave={onSaveInventoryItem}
+          onClose={() => setShowItemModal(false)}
+        />
       )}
 
       {/* Stock Upsert Modal */}
       {showStockModal && (
-        <div className="modal-backdrop" onClick={() => setShowStockModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>Update Mess Stock Level</h3>
-            <form onSubmit={handleStockSubmit}>
-              <div className="form-group">
-                <label>Mess Facility</label>
-                <select
-                  className="form-select"
-                  value={stockFormData.MessID || ''}
-                  onChange={(e) => setStockFormData({ ...stockFormData, MessID: e.target.value })}
-                  required
-                >
-                  {messes.map((m) => (
-                    <option key={m.MessID} value={m.MessID}>
-                      {m.MessName} ({m.MessID})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Select Item from Catalog</label>
-                <select
-                  className="form-select"
-                  value={stockFormData.ItemID || ''}
-                  onChange={(e) => setStockFormData({ ...stockFormData, ItemID: e.target.value })}
-                  required
-                >
-                  {inventoryItems.map((item) => (
-                    <option key={item.ItemID} value={item.ItemID}>
-                      {item.ItemName} ({item.Category} - {item.Unit})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Current Quantity</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    className="form-input"
-                    value={stockFormData.CurrentQuantity || 0}
-                    onChange={(e) => setStockFormData({ ...stockFormData, CurrentQuantity: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Last Updated Date</label>
-                  <input
-                    type="date"
-                    className="form-input"
-                    value={stockFormData.LastUpdatedDate || ''}
-                    onChange={(e) => setStockFormData({ ...stockFormData, LastUpdatedDate: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowStockModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Save Stock Level
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <EditStockModal
+          messes={messes}
+          inventoryItems={inventoryItems}
+          onSave={onSaveStock}
+          onClose={() => setShowStockModal(false)}
+        />
       )}
 
       {/* Procurement Event Modal */}
       {showProcurementModal && (
-        <div className="modal-backdrop" onClick={() => setShowProcurementModal(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '16px', fontSize: '1.2rem' }}>
-              {editingProcurement ? 'Edit Procurement Log' : 'Record New Purchase Event'}
-            </h3>
-            <form onSubmit={handleProcurementSubmit}>
-              <div className="form-group">
-                <label>Purchase ID</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={procurementFormData.PurchaseID || ''}
-                  onChange={(e) => setProcurementFormData({ ...procurementFormData, PurchaseID: e.target.value })}
-                  readOnly={!!editingProcurement}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Mess Facility</label>
-                  <select
-                    className="form-select"
-                    value={procurementFormData.MessID || ''}
-                    onChange={(e) => setProcurementFormData({ ...procurementFormData, MessID: e.target.value })}
-                    required
-                  >
-                    {messes.map((m) => (
-                      <option key={m.MessID} value={m.MessID}>
-                        {m.MessName} ({m.MessID})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Supplier</label>
-                  <select
-                    className="form-select"
-                    value={procurementFormData.SupplierID || ''}
-                    onChange={(e) => setProcurementFormData({ ...procurementFormData, SupplierID: e.target.value })}
-                    required
-                  >
-                    {suppliers.map((s) => (
-                      <option key={s.SupplierID} value={s.SupplierID}>
-                        {s.SupplierName} ({s.SupplierID})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Purchased Item</label>
-                <select
-                  className="form-select"
-                  value={procurementFormData.ItemID || ''}
-                  onChange={(e) => setProcurementFormData({ ...procurementFormData, ItemID: e.target.value })}
-                  required
-                >
-                  {inventoryItems.map((item) => (
-                    <option key={item.ItemID} value={item.ItemID}>
-                      {item.ItemName} ({item.Unit})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '12px' }}>
-                <div className="form-group">
-                  <label>Quantity</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    className="form-input"
-                    value={procurementFormData.Quantity || 0}
-                    onChange={(e) => {
-                      const q = Number(e.target.value);
-                      const u = procurementFormData.UnitPrice || 0;
-                      setProcurementFormData({ ...procurementFormData, Quantity: q, TotalCost: q * u });
-                    }}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Unit Price (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-input"
-                    value={procurementFormData.UnitPrice || 0}
-                    onChange={(e) => {
-                      const u = Number(e.target.value);
-                      const q = procurementFormData.Quantity || 0;
-                      setProcurementFormData({ ...procurementFormData, UnitPrice: u, TotalCost: q * u });
-                    }}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Total Cost (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-input"
-                    value={procurementFormData.TotalCost || 0}
-                    onChange={(e) => setProcurementFormData({ ...procurementFormData, TotalCost: Number(e.target.value) })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Purchase Date</label>
-                <input
-                  type="date"
-                  className="form-input"
-                  value={procurementFormData.PurchaseDate || ''}
-                  onChange={(e) => setProcurementFormData({ ...procurementFormData, PurchaseDate: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowProcurementModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingProcurement ? 'Update Purchase Log' : 'Record Purchase'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <EditProcurementModal
+          procurement={editingProcurement}
+          messes={messes}
+          suppliers={suppliers}
+          inventoryItems={inventoryItems}
+          onSave={onSaveProcurement}
+          onClose={() => setShowProcurementModal(false)}
+        />
       )}
     </div>
   );

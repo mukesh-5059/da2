@@ -207,36 +207,56 @@ h1, h2, h3, h4, h5 {
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
 }
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
   font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .data-table th {
-  background-color: var(--bg-surface);
+  background-color: rgba(17, 23, 35, 0.85); /* var(--bg-surface) but translucent */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: var(--text-secondary);
   font-weight: 600;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-medium);
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .data-table td {
-  padding: 14px 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-primary);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.data-table tr {
+  transition: all 0.2s ease;
 }
 
 .data-table tr:hover td {
-  background-color: var(--bg-card-hover);
+  background-color: rgba(255, 255, 255, 0.03); /* Subtle highlight */
 }
+
+/* Rounded corners for first and last cells in a row */
+.data-table tr:first-child td:first-child { border-top-left-radius: 8px; }
+.data-table tr:first-child td:last-child { border-top-right-radius: 8px; }
+.data-table tr:last-child td:first-child { border-bottom-left-radius: 8px; }
+.data-table tr:last-child td:last-child { border-bottom-right-radius: 8px; }
+
 
 /* Floor Matrix View */
 .floor-section {
