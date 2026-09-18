@@ -1,9 +1,13 @@
 import React from 'react';
-import { Home, BedDouble, Users, Utensils, Package, CreditCard, Layers } from 'lucide-react';
+import { Home, BedDouble, Users, Utensils, Package, CreditCard, Layers, Database } from 'lucide-react';
+import { TABLES } from './PureTablesView';
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
+  viewMode?: 'dashboard' | 'pure_tables';
+  activeTableIdx?: number;
+  onTableTabChange?: (idx: number) => void;
 }
 
 interface NavItem {
@@ -14,7 +18,13 @@ interface NavItem {
   tag?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ 
+  activeTab, 
+  onTabChange,
+  viewMode = 'dashboard',
+  activeTableIdx = 0,
+  onTableTabChange
+}) => {
   const navItems: NavItem[] = [
     { id: 'accommodations', label: 'Accommodations', icon: BedDouble },
     { id: 'personnel', label: 'Personnel & People', icon: Users },
@@ -39,44 +49,52 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
         </div>
       </div>
 
-      <nav style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => !item.disabled && onTabChange(item.id)}
-              disabled={item.disabled}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                border: 'none',
-                background: isActive ? 'var(--accent-primary)' : 'transparent',
-                color: isActive ? '#fff' : item.disabled ? 'var(--text-muted)' : 'var(--text-secondary)',
-                fontWeight: isActive ? 600 : 500,
-                fontSize: '0.9rem',
-                cursor: item.disabled ? 'not-allowed' : 'pointer',
-                textAlign: 'left',
-                transition: 'all 0.2s',
-                opacity: item.disabled ? 0.6 : 1,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Icon size={18} />
-                <span>{item.label}</span>
-              </div>
-              {item.tag && (
-                <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                  {item.tag}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <nav style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
+        {viewMode === 'dashboard' ? (
+          navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                className={`sidebar-nav-btn ${isActive ? 'active' : ''}`}
+                onClick={() => !item.disabled && onTabChange(item.id)}
+                disabled={item.disabled}
+                style={{
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  fontSize: '0.9rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Icon size={18} />
+                  <span>{item.label}</span>
+                </div>
+                {item.tag && (
+                  <span style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                    {item.tag}
+                  </span>
+                )}
+              </button>
+            );
+          })
+        ) : (
+          TABLES.map((t, i) => {
+            const isActive = activeTableIdx === i;
+            return (
+              <button
+                key={t.name}
+                className={`sidebar-nav-btn ${isActive ? 'active' : ''}`}
+                onClick={() => onTableTabChange && onTableTabChange(i)}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Database size={16} />
+                  <span>{t.name}</span>
+                </div>
+              </button>
+            );
+          })
+        )}
       </nav>
 
       <div style={{ marginTop: 'auto', padding: '16px', borderTop: '1px solid var(--border-subtle)', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>

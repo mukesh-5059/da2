@@ -16,14 +16,14 @@ export const Header: React.FC<HeaderProps> = ({ viewMode, onToggleViewMode }) =>
         <button 
           className={`btn ${viewMode === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => onToggleViewMode('dashboard')}
-          style={{ padding: '6px 16px', borderRadius: '20px', fontWeight: 600 }}
+          style={{ padding: '6px 16px', borderRadius: '20px', fontWeight: 600, outline: 'none' }}
         >
           Dashboard
         </button>
         <button 
           className={`btn ${viewMode === 'pure_tables' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => onToggleViewMode('pure_tables')}
-          style={{ padding: '6px 16px', borderRadius: '20px', fontWeight: 600 }}
+          style={{ padding: '6px 16px', borderRadius: '20px', fontWeight: 600, outline: 'none' }}
         >
           Pure Tables
         </button>

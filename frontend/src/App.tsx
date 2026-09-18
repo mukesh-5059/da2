@@ -13,6 +13,7 @@ import { MessProfileModal } from './components/Mess/MessProfileModal';
 import { MessTab } from './components/Mess/MessTab';
 import { FinancialsTab } from './components/Financials/FinancialsTab';
 import { InventoryTab } from './components/Inventory/InventoryTab';
+import { PureTablesView } from './components/PureTablesView';
 import { Bed, Layers, CheckSquare, AlertCircle, Building2, X } from 'lucide-react';
 import './styles/index.css';
 
@@ -20,6 +21,7 @@ export const App: React.FC = () => {
   const [activeNavTab, setActiveNavTab] = useState('accommodations');
   const [subTab, setSubTab] = useState<'rooms' | 'roomTypes' | 'allocations'>('rooms');
   const [viewMode, setViewMode] = useState<'dashboard' | 'pure_tables'>('dashboard');
+  const [activeTableIdx, setActiveTableIdx] = useState(0);
 
   const [selectedHostelId, setSelectedHostelId] = useState('ALL');
   const [rawSearchQuery, setRawSearchQuery] = useState('');
@@ -713,7 +715,13 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-container">
-      <Sidebar activeTab={activeNavTab} onTabChange={setActiveNavTab} />
+      <Sidebar 
+        activeTab={activeNavTab} 
+        onTabChange={setActiveNavTab} 
+        viewMode={viewMode}
+        activeTableIdx={activeTableIdx}
+        onTableTabChange={setActiveTableIdx}
+      />
 
       <div className="main-content">
         <Header
@@ -721,8 +729,16 @@ export const App: React.FC = () => {
           onToggleViewMode={setViewMode}
         />
 
-        <main className="page-body">
-          {/* Feedback Banners */}
+        {viewMode === 'pure_tables' ? (
+          <main className="page-body" style={{ padding: 0 }}>
+            <PureTablesView 
+              activeTableIdx={activeTableIdx} 
+              onTabChange={setActiveTableIdx} 
+            />
+          </main>
+        ) : (
+          <main className="page-body">
+            {/* Feedback Banners */}
           {toastMessage && (
             <div style={{ background: '#10b981', color: '#fff', padding: '12px 18px', borderRadius: '8px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600, fontSize: '0.9rem' }}>
               <CheckSquare size={18} /> {toastMessage}
@@ -866,6 +882,7 @@ export const App: React.FC = () => {
             />
           )}
         </main>
+        )}
       </div>
 
       {/* Room Detail Modal */}
