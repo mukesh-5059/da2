@@ -205,33 +205,17 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       {/* Sub-Tab 1: Pantry Stock Levels */}
       {activeSubTab === 'stock' && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Mess Pantry Stock Levels</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 Real-time inventory levels per dining facility (`INVENTORY_STOCK` relation).
               </p>
             </div>
-
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <select
-                className="form-select"
-                style={{ padding: '6px 12px', fontSize: '0.85rem' }}
-                value={selectedMessFilter}
-                onChange={(e) => setSelectedMessFilter(e.target.value)}
-              >
-                <option value="ALL">All Dining Messes</option>
-                {messes.map((m) => (
-                  <option key={m.MessID} value={m.MessID}>
-                    {m.MessName} ({m.MessID})
-                  </option>
-                ))}
-              </select>
-
-              <button className="btn btn-primary" onClick={handleOpenAddStock}>
-                <Plus size={16} /> Update Stock Level
-              </button>
-            </div>
+            
+            <button className="btn btn-primary" onClick={handleOpenAddStock} style={{ whiteSpace: 'nowrap' }}>
+              <Plus size={16} /> Update Stock Level
+            </button>
           </div>
 
           <div style={{ marginBottom: '16px' }}>
@@ -241,7 +225,20 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               setSearchCol={stockTable.setSearchCol} 
               searchText={stockTable.searchText} 
               setSearchText={stockTable.setSearchText}
-            />
+            >
+              <select
+                value={selectedMessFilter}
+                onChange={(e) => setSelectedMessFilter(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: '0.9rem', cursor: 'pointer' }}
+              >
+                <option value="ALL">All Dining Messes</option>
+                {messes.map((m) => (
+                  <option key={m.MessID} value={m.MessID}>
+                    {m.MessName} ({m.MessID})
+                  </option>
+                ))}
+              </select>
+            </TableControls>
           </div>
 
           <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
@@ -296,7 +293,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       {/* Sub-Tab 2: Item Catalog */}
       {activeSubTab === 'items' && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Master Inventory Catalog</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -304,12 +301,20 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               </p>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <button className="btn btn-primary" onClick={handleOpenAddItem} style={{ whiteSpace: 'nowrap' }}>
+              <Plus size={16} /> Add Inventory Item
+            </button>
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <TableControls 
+              searchText={searchQuery} 
+              setSearchText={setSearchQuery}
+            >
               <select
-                className="form-select"
-                style={{ padding: '6px 12px', fontSize: '0.85rem' }}
                 value={selectedCategoryFilter}
                 onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: '0.9rem', cursor: 'pointer' }}
               >
                 <option value="ALL">All Categories</option>
                 <option value="Dairy">Dairy</option>
@@ -319,23 +324,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                 <option value="Cleaning">Cleaning</option>
                 <option value="Other">Other</option>
               </select>
-
-              <button className="btn btn-primary" onClick={handleOpenAddItem}>
-                <Plus size={16} /> Add Inventory Item
-              </button>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '16px', maxWidth: '360px' }}>
-            <div className="search-bar" style={{ padding: '8px 14px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Search item catalog..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            </TableControls>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
@@ -379,7 +368,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       {/* Sub-Tab 3: Procurement Events */}
       {activeSubTab === 'procurement' && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Procurement & Purchase Logs</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -387,7 +376,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               </p>
             </div>
 
-            <button className="btn btn-primary" onClick={handleOpenAddProcurement}>
+            <button className="btn btn-primary" onClick={handleOpenAddProcurement} style={{ whiteSpace: 'nowrap' }}>
               <Plus size={16} /> Record Purchase
             </button>
           </div>
@@ -399,7 +388,20 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               setSearchCol={procurementTable.setSearchCol} 
               searchText={procurementTable.searchText} 
               setSearchText={procurementTable.setSearchText}
-            />
+            >
+              <select
+                value={selectedMessFilter}
+                onChange={(e) => setSelectedMessFilter(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: '0.9rem', cursor: 'pointer' }}
+              >
+                <option value="ALL">All Dining Messes</option>
+                {messes.map((m) => (
+                  <option key={m.MessID} value={m.MessID}>
+                    {m.MessName} ({m.MessID})
+                  </option>
+                ))}
+              </select>
+            </TableControls>
           </div>
 
           <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
@@ -455,7 +457,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
       {/* Sub-Tab 4: Suppliers Directory */}
       {activeSubTab === 'suppliers' && (
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
             <div>
               <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Suppliers Directory</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -463,21 +465,16 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
               </p>
             </div>
 
-            <button className="btn btn-primary" onClick={handleOpenAddSupplier}>
+            <button className="btn btn-primary" onClick={handleOpenAddSupplier} style={{ whiteSpace: 'nowrap' }}>
               <Plus size={16} /> Register Supplier
             </button>
           </div>
 
-          <div style={{ marginBottom: '16px', maxWidth: '360px' }}>
-            <div className="search-bar" style={{ padding: '8px 14px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Search suppliers by name or phone..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <TableControls 
+              searchText={searchQuery} 
+              setSearchText={setSearchQuery}
+            />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
