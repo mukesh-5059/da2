@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Student } from '../../types';
 import { Plus, Edit2, Trash2, Phone, Mail, GraduationCap, Heart, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { TableControls } from '../TableControls';
+import { TableHeader } from '../TableHeader';
 
 interface StudentsTabProps {
   students: Student[];
@@ -19,7 +22,17 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Partial<Student> | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  const columns: ColumnDef<Student>[] = [
+    { key: 'StudentID', label: 'Student ID', getValue: (s) => s.StudentID || (s as any).student_id },
+    { key: 'FullName', label: 'Full Name', getValue: (s) => `${s.FirstName || (s as any).name || (s as any).FirstName || ''} ${s.LastName || ''}` },
+    { key: 'Department', label: 'Department', getValue: (s) => s.Department || (s as any).department || 'CSE' },
+    { key: 'Phone', label: 'Contact Number', getValue: (s) => s.Phone || (s as any).phone || '' },
+    { key: 'Status', label: 'Status', getValue: (s) => (s.IsActive !== 0 ? 'Active' : 'Inactive') },
+    { key: 'actions', label: 'Actions', sortable: false }
+  ];
+
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredStudents } = useTableFeatures(students, columns);
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 12;
@@ -80,14 +93,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
     setShowModal(false);
   };
 
-  const filteredStudents = students.filter(s => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const sId = (s.StudentID || (s as any).student_id || '').toLowerCase();
-    const name = `${s.FirstName || ''} ${s.LastName || ''}`.toLowerCase();
-    const dept = (s.Department || (s as any).department || '').toLowerCase();
-    return sId.includes(q) || name.includes(q) || dept.includes(q);
-  });
+
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
@@ -104,14 +110,14 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
         </div>
 
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div className="search-bar" style={{ padding: '8px 14px', width: '260px' }}>
-            <input
-              type="text"
-              placeholder="Filter by name, ID or dept..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            />
-          </div>
+          <TableControls 
+            columns={columns} 
+            searchCol={searchCol} 
+            setSearchCol={setSearchCol} 
+            searchText={searchText} 
+            setSearchText={setSearchText}
+            onSearchChange={() => setCurrentPage(1)}
+          />
 
           <button className="btn btn-primary" onClick={handleOpenAdd}>
             <Plus size={16} />
@@ -122,21 +128,12 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
 
       {filteredStudents.length === 0 ? (
         <div className="card-glass" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-          No resident students found matching search term "{searchQuery}".
+          No resident students found matching search criteria.
         </div>
       ) : (
       <div className="data-table-container">
         <table className="data-table">
-          <thead>
-            <tr>
-              <th>Student ID</th>
-              <th>Full Name</th>
-              <th>Department</th>
-              <th>Contact Number</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
+          <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
             {paginatedStudents.map((student) => {
               const sId = student.StudentID || (student as any).student_id;

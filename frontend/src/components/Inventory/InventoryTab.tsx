@@ -24,6 +24,9 @@ import {
   InventoryStock,
   ProcurementEvent
 } from '../../types';
+import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { TableControls } from '../TableControls';
+import { TableHeader } from '../TableHeader';
 
 interface InventoryTabProps {
   messes: Mess[];
@@ -114,15 +117,33 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
     setShowProcurementModal(true);
   };
 
-  // Filtered Stock
-  const filteredStock = inventoryStock.filter((s) => {
-    if (selectedMessFilter !== 'ALL' && s.MessID !== selectedMessFilter) return false;
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const name = (s.ItemName || s.ItemID || '').toLowerCase();
-    const mName = (s.MessName || s.MessID || '').toLowerCase();
-    return name.includes(q) || mName.includes(q);
-  });
+  const stockColumns: ColumnDef<InventoryStock>[] = [
+    { key: 'MessFacility', label: 'Mess Facility', getValue: s => s.MessName || s.MessID },
+    { key: 'ItemName', label: 'Item Name', getValue: s => s.ItemName || s.ItemID },
+    { key: 'Category', label: 'Category', getValue: s => s.Category || 'General' },
+    { key: 'Quantity', label: 'Quantity', getValue: s => s.CurrentQuantity },
+    { key: 'Unit', label: 'Unit', getValue: s => s.Unit || 'units' },
+    { key: 'LastUpdated', label: 'Last Updated', getValue: s => s.LastUpdatedDate },
+    { key: 'actions', label: 'Actions', sortable: false }
+  ];
+
+  const procurementColumns: ColumnDef<ProcurementEvent>[] = [
+    { key: 'PurchaseID', label: 'Purchase ID', getValue: p => p.PurchaseID },
+    { key: 'MessFacility', label: 'Mess Facility', getValue: p => p.MessName || p.MessID },
+    { key: 'Supplier', label: 'Supplier', getValue: p => p.SupplierName || p.SupplierID },
+    { key: 'Item', label: 'Item', getValue: p => p.ItemName || p.ItemID },
+    { key: 'Quantity', label: 'Quantity', getValue: p => p.Quantity },
+    { key: 'UnitPrice', label: 'Unit Price', getValue: p => p.UnitPrice },
+    { key: 'TotalCost', label: 'Total Cost', getValue: p => p.TotalCost },
+    { key: 'Date', label: 'Date', getValue: p => p.PurchaseDate },
+    { key: 'actions', label: 'Actions', sortable: false }
+  ];
+
+  const stockMessFiltered = inventoryStock.filter(s => selectedMessFilter === 'ALL' || s.MessID === selectedMessFilter);
+  const procurementMessFiltered = procurementEvents.filter(p => selectedMessFilter === 'ALL' || p.MessID === selectedMessFilter);
+
+  const stockTable = useTableFeatures(stockMessFiltered, stockColumns);
+  const procurementTable = useTableFeatures(procurementMessFiltered, procurementColumns);
 
   // Filtered Items
   const filteredItems = inventoryItems.filter((item) => {
@@ -130,17 +151,6 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
     const q = searchQuery.toLowerCase().trim();
     if (!q) return true;
     return item.ItemName.toLowerCase().includes(q) || item.ItemID.toLowerCase().includes(q);
-  });
-
-  // Filtered Procurement
-  const filteredProcurement = procurementEvents.filter((p) => {
-    if (selectedMessFilter !== 'ALL' && p.MessID !== selectedMessFilter) return false;
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const iName = (p.ItemName || p.ItemID || '').toLowerCase();
-    const sName = (p.SupplierName || p.SupplierID || '').toLowerCase();
-    const mName = (p.MessName || p.MessID || '').toLowerCase();
-    return iName.includes(q) || sName.includes(q) || mName.includes(q);
   });
 
   // Filtered Suppliers
@@ -224,40 +234,28 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             </div>
           </div>
 
-          <div style={{ marginBottom: '16px', maxWidth: '360px' }}>
-            <div className="search-bar" style={{ padding: '8px 14px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Search stock by item or mess name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <TableControls 
+              columns={stockColumns} 
+              searchCol={stockTable.searchCol} 
+              setSearchCol={stockTable.setSearchCol} 
+              searchText={stockTable.searchText} 
+              setSearchText={stockTable.setSearchText}
+            />
           </div>
 
           <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Mess Facility</th>
-                  <th>Item Name</th>
-                  <th>Category</th>
-                  <th>Quantity</th>
-                  <th>Unit</th>
-                  <th>Last Updated</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
+              <TableHeader columns={stockColumns} sortCol={stockTable.sortCol} sortDir={stockTable.sortDir} onSort={stockTable.handleSort} />
               <tbody>
-                {filteredStock.length === 0 ? (
+                {stockTable.processedData.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No inventory stock entries found.
                     </td>
                   </tr>
                 ) : (
-                  filteredStock.map((s) => {
+                  stockTable.processedData.map((s) => {
                     return (
                       <tr key={`${s.MessID}-${s.ItemID}`}>
                         <td>
@@ -394,42 +392,28 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             </button>
           </div>
 
-          <div style={{ marginBottom: '16px', maxWidth: '360px' }}>
-            <div className="search-bar" style={{ padding: '8px 14px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Search purchase logs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <TableControls 
+              columns={procurementColumns} 
+              searchCol={procurementTable.searchCol} 
+              setSearchCol={procurementTable.setSearchCol} 
+              searchText={procurementTable.searchText} 
+              setSearchText={procurementTable.setSearchText}
+            />
           </div>
 
           <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Purchase ID</th>
-                  <th>Mess Facility</th>
-                  <th>Supplier</th>
-                  <th>Item</th>
-                  <th>Quantity</th>
-                  <th>Unit Price</th>
-                  <th>Total Cost</th>
-                  <th>Date</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
+              <TableHeader columns={procurementColumns} sortCol={procurementTable.sortCol} sortDir={procurementTable.sortDir} onSort={procurementTable.handleSort} />
               <tbody>
-                {filteredProcurement.length === 0 ? (
+                {procurementTable.processedData.length === 0 ? (
                   <tr>
                     <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No procurement events recorded.
                     </td>
                   </tr>
                 ) : (
-                  filteredProcurement.map((p) => (
+                  procurementTable.processedData.map((p) => (
                     <tr key={p.PurchaseID}>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{p.PurchaseID}</td>
                       <td>{p.MessName || p.MessID}</td>

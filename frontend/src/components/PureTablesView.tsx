@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '../services/api';
 import { Edit2, Trash2, Plus, X } from 'lucide-react';
 
@@ -322,13 +322,40 @@ export const TABLES: TableConfig[] = [
 ];
 
 export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (idx: number) => void }> = ({ activeTableIdx, onTabChange }) => {
+  const getFKTable = (key: string) => {
+    if (key === 'HostelID') return 'Hostels';
+    if (key === 'WardenID') return 'Wardens';
+    if (key === 'RoomNo') return 'Rooms';
+    if (key === 'StudentID') return 'Students';
+    if (key === 'MessID') return 'Messes';
+    if (key === 'MealID') return 'Meals';
+    if (key === 'BillID') return 'Monthly Bills';
+    if (key === 'SupplierID') return 'Suppliers';
+    if (key === 'ItemID') return 'Inventory';
+    if (key === 'CategoryID') return 'Room Categories';
+    return null;
+  };
+
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
   const [formData, setFormData] = useState<any>({});
-  
+  const [highlightedRowId, setHighlightedRowId] = useState<string | null>(null);
+
+  const [searchCol, setSearchCol] = useState<string>('');
+  const [searchText, setSearchText] = useState('');
+  const [sortCol, setSortCol] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
   const activeConfig = TABLES[activeTableIdx];
+
+  useEffect(() => {
+    setSearchCol('');
+    setSearchText('');
+    setSortCol(null);
+    setSortDir('asc');
+  }, [activeTableIdx]);
 
   const loadData = async () => {
     setLoading(true);
@@ -342,9 +369,73 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
     setLoading(false);
   };
 
+  const processedData = useMemo(() => {
+    let result = [...data];
+    
+    if (searchText) {
+      const query = searchText.toLowerCase();
+      result = result.filter(row => {
+        if (searchCol) {
+          const val = row[searchCol];
+          return val != null && String(val).toLowerCase().includes(query);
+        } else {
+          return Object.values(row).some(val => 
+            val != null && String(val).toLowerCase().includes(query)
+          );
+        }
+      });
+    }
+
+    if (sortCol) {
+      result.sort((a, b) => {
+        const valA = a[sortCol];
+        const valB = b[sortCol];
+        if (valA === valB) return 0;
+        if (valA == null) return sortDir === 'asc' ? -1 : 1;
+        if (valB == null) return sortDir === 'asc' ? 1 : -1;
+        
+        const aNum = Number(valA);
+        const bNum = Number(valB);
+        if (!isNaN(aNum) && !isNaN(bNum)) {
+          return sortDir === 'asc' ? aNum - bNum : bNum - aNum;
+        }
+        
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+        if (strA < strB) return sortDir === 'asc' ? -1 : 1;
+        if (strA > strB) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [data, searchCol, searchText, sortCol, sortDir]);
+
   useEffect(() => {
     loadData();
+    // clear highlight when tab changes externally (we will handle internal change specially)
+    // wait, if we clear it here, it will clear immediately when we set it!
+    // So we don't clear it on activeTableIdx change. We clear it on unmount or maybe keep it?
+    // Actually, we can just keep it. It's harmless if a row ID happens to match in another table,
+    // but we can also just clear it if the user clicks somewhere else.
   }, [activeTableIdx]);
+
+  useEffect(() => {
+    if (highlightedRowId && !loading) {
+      setTimeout(() => {
+        const el = document.getElementById(`row-${highlightedRowId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [highlightedRowId, loading]);
+
+  const handleFKClick = (e: React.MouseEvent, fkTableIndex: number, recordId: string) => {
+    e.stopPropagation();
+    setHighlightedRowId(recordId);
+    onTabChange(fkTableIndex);
+  };
 
   const handleOpenAdd = () => {
     setEditingRecord(null);
@@ -387,13 +478,37 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', flexDirection: 'column' }}>
+    <div 
+      style={{ display: 'flex', height: '100%', flexDirection: 'column' }}
+      onClick={() => setHighlightedRowId(null)}
+    >
       <div style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
           <h2>{activeConfig.name} Data</h2>
-          <button className="btn btn-primary" onClick={handleOpenAdd}>
-            <Plus size={16} /> Add New Record
-          </button>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-surface)', padding: '4px 8px', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+              <select 
+                value={searchCol}
+                onChange={(e) => setSearchCol(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', fontSize: '0.9rem' }}
+              >
+                <option value="">All Columns</option>
+                {activeConfig.columns.map(c => (
+                  <option key={c.key} value={c.key}>{c.label}</option>
+                ))}
+              </select>
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', outline: 'none', borderLeft: '1px solid var(--border-subtle)', paddingLeft: '8px', fontSize: '0.9rem' }}
+              />
+            </div>
+            <button className="btn btn-primary" onClick={handleOpenAdd}>
+              <Plus size={16} /> Add New Record
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -403,20 +518,80 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
             <table className="data-table">
               <thead>
                 <tr>
-                  {activeConfig.columns.map(c => (
-                    <th key={c.key}>{c.label}</th>
-                  ))}
+                  {activeConfig.columns.map(c => {
+                    const isPK = c.key === activeConfig.primaryKey;
+                    const fkTable = !isPK ? getFKTable(c.key) : null;
+                    const isSorted = sortCol === c.key;
+                    
+                    const handleSort = () => {
+                      if (sortCol === c.key) {
+                        if (sortDir === 'asc') setSortDir('desc');
+                        else setSortCol(null);
+                      } else {
+                        setSortCol(c.key);
+                        setSortDir('asc');
+                      }
+                    };
+
+                    return (
+                      <th 
+                        key={c.key} 
+                        onClick={handleSort}
+                        style={{ cursor: 'pointer', userSelect: 'none' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          {c.label}
+                          {isPK && <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700 }}>[PK]</span>}
+                          {fkTable && <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 700 }}>[FK]</span>}
+                          {isSorted && (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-link)' }}>
+                              {sortDir === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    );
+                  })}
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((row, idx) => {
+                {processedData.map((row, idx) => {
                   const pKey = row[activeConfig.primaryKey] || idx;
+                  const isHighlighted = String(pKey) === highlightedRowId;
                   return (
-                    <tr key={pKey}>
-                      {activeConfig.columns.map(c => (
-                        <td key={c.key}>{row[c.key]}</td>
-                      ))}
+                    <tr 
+                      key={pKey} 
+                      id={`row-${pKey}`}
+                      style={{ 
+                        backgroundColor: isHighlighted ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                        transition: 'background-color 0.3s ease'
+                      }}
+                    >
+                      {activeConfig.columns.map(c => {
+                        const isPK = c.key === activeConfig.primaryKey;
+                        const fkTable = !isPK ? getFKTable(c.key) : null;
+                        const fkTableIndex = fkTable ? TABLES.findIndex(t => t.name === fkTable) : -1;
+                        
+                        return (
+                          <td key={c.key}>
+                            {fkTable && fkTableIndex !== -1 && row[c.key] ? (
+                              <button 
+                                onClick={(e) => handleFKClick(e, fkTableIndex, String(row[c.key]))}
+                                style={{ 
+                                  background: 'none', border: 'none', padding: 0, 
+                                  color: 'var(--text-link)', textDecoration: 'underline', 
+                                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 'inherit'
+                                }}
+                              >
+                                {row[c.key]}
+                              </button>
+                            ) : (
+                              row[c.key]
+                            )}
+                          </td>
+                        );
+                      })}
                       <td style={{ textAlign: 'right', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => handleOpenEdit(row)}>
                           <Edit2 size={14} />
@@ -428,9 +603,11 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
                     </tr>
                   )
                 })}
-                {data.length === 0 && (
+                {processedData.length === 0 && (
                   <tr>
-                    <td colSpan={activeConfig.columns.length + 1} style={{ textAlign: 'center', padding: '20px' }}>No records found</td>
+                    <td colSpan={activeConfig.columns.length + 1} style={{ textAlign: 'center', padding: '20px' }}>
+                      {data.length === 0 ? 'No records found' : 'No matches found'}
+                    </td>
                   </tr>
                 )}
               </tbody>

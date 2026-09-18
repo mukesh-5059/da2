@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Staff, Hostel } from '../../types';
 import { Plus, Edit2, Trash2, UserCheck, DollarSign, Clock, Utensils, Shield, Sparkles } from 'lucide-react';
+import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { TableControls } from '../TableControls';
+import { TableHeader } from '../TableHeader';
 
 interface StaffTabProps {
   staff: Staff[];
@@ -17,6 +20,18 @@ export const StaffTab: React.FC<StaffTabProps> = ({
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Partial<Staff> | null>(null);
+
+  const columns: ColumnDef<Staff>[] = [
+    { key: 'StaffID', label: 'Staff ID', getValue: s => s.StaffID },
+    { key: 'FullName', label: 'Full Name', getValue: s => `${s.FirstName} ${s.LastName}` },
+    { key: 'Role', label: 'Role / Category', getValue: s => s.Role },
+    { key: 'ShiftSlot', label: 'Shift Slot', getValue: s => s.ShiftSlot },
+    { key: 'Assignment', label: 'Cuisine / Assignment', getValue: s => s.Role === 'Chef' ? (s.CuisineType || 'General') : (s.HostelID || s.MessID || 'Campus Central') },
+    { key: 'Phone', label: 'Phone', getValue: s => s.Phone },
+    { key: 'Salary', label: 'Salary / Mo', getValue: s => s.Salary }
+  ];
+
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredStaff } = useTableFeatures(staff, columns);
 
   const [formData, setFormData] = useState<Partial<Staff>>({
     StaffID: '',
@@ -72,27 +87,26 @@ export const StaffTab: React.FC<StaffTabProps> = ({
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={handleOpenAdd}>
-          <Plus size={16} />
-          Add Staff Member
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <TableControls 
+            columns={columns} 
+            searchCol={searchCol} 
+            setSearchCol={setSearchCol} 
+            searchText={searchText} 
+            setSearchText={setSearchText}
+          />
+          <button className="btn btn-primary" onClick={handleOpenAdd}>
+            <Plus size={16} />
+            Add Staff Member
+          </button>
+        </div>
       </div>
 
       <div className="data-table-container">
         <table className="data-table">
-          <thead>
-            <tr>
-              <th>Staff ID</th>
-              <th>Full Name</th>
-              <th>Role / Category</th>
-              <th>Shift Slot</th>
-              <th>Cuisine / Assignment</th>
-              <th>Phone</th>
-              <th>Salary / Mo</th>
-            </tr>
-          </thead>
+          <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
-            {staff.map((st) => (
+            {filteredStaff.map((st) => (
               <tr key={st.StaffID}>
                 <td>
                   <div

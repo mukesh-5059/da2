@@ -5,6 +5,9 @@ import { MessProfileModal } from './MessProfileModal';
 import { EditMessModal } from './EditMessModal';
 import { EditMessEnrollmentModal } from './EditMessEnrollmentModal';
 import { EnrollmentProfileModal } from './EnrollmentProfileModal';
+import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { TableControls } from '../TableControls';
+import { TableHeader } from '../TableHeader';
 
 interface MessTabProps {
   messes: Mess[];
@@ -37,6 +40,15 @@ export const MessTab: React.FC<MessTabProps> = ({
 }) => {
   const [subTab, setSubTab] = useState<'facilities' | 'enrollments'>('facilities');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const enrollColumns: ColumnDef<MessEnrollment>[] = [
+    { key: 'EnrollmentID', label: 'Enrollment ID', getValue: enr => enr.EnrollmentID || (enr as any).enrollment_id },
+    { key: 'StudentName', label: 'Student Name', getValue: enr => `${enr.FirstName || ''} ${enr.LastName || ''}`.trim() || enr.StudentName || enr.StudentID || (enr as any).student_id },
+    { key: 'MessFacility', label: 'Mess Facility', getValue: enr => enr.MessName || enr.MessID || (enr as any).mess_name || (enr as any).mess_id },
+    { key: 'Status', label: 'Status', getValue: () => 'Active' }
+  ];
+
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredEnrollments } = useTableFeatures(enrollments, enrollColumns);
 
   // Detailed View states
   const [viewingMess, setViewingMess] = useState<Mess | null>(null);
@@ -82,15 +94,6 @@ export const MessTab: React.FC<MessTabProps> = ({
     setEditingEnrollment(enr);
     setShowEnrollModal(true);
   };
-
-  const filteredEnrollments = enrollments.filter((enr) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const sId = enr.StudentID || (enr as any).student_id || '';
-    const name = `${enr.FirstName || ''} ${enr.LastName || ''} ${enr.StudentName || ''}`.toLowerCase();
-    const mName = (enr.MessName || enr.MessID || '').toLowerCase();
-    return sId.toLowerCase().includes(q) || name.includes(q) || mName.includes(q);
-  });
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -199,28 +202,19 @@ export const MessTab: React.FC<MessTabProps> = ({
             </button>
           </div>
 
-          <div style={{ marginBottom: '16px', maxWidth: '360px' }}>
-            <div className="search-bar" style={{ padding: '8px 14px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Filter enrollments by student name or ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div style={{ marginBottom: '16px' }}>
+            <TableControls 
+              columns={enrollColumns} 
+              searchCol={searchCol} 
+              setSearchCol={setSearchCol} 
+              searchText={searchText} 
+              setSearchText={setSearchText}
+            />
           </div>
 
           <div className="data-table-container">
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Enrollment ID</th>
-                  <th>Student Name</th>
-                  <th>Mess Facility</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
+              <TableHeader columns={enrollColumns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
               <tbody>
                 {filteredEnrollments.length === 0 ? (
                   <tr>

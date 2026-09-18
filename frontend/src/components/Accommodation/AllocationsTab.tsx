@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { RoomAllocation, Student, Room } from '../../types';
 import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2, User, Building, GraduationCap, X } from 'lucide-react';
+import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { TableControls } from '../TableControls';
+import { TableHeader } from '../TableHeader';
 
 interface AllocationsTabProps {
   allocations: RoomAllocation[];
@@ -26,6 +29,17 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [editingAlloc, setEditingAlloc] = useState<Partial<RoomAllocation> | null>(null);
   const [selectedAllocId, setSelectedAllocId] = useState<string | null>(null);
+
+  const columns: ColumnDef<RoomAllocation>[] = [
+    { key: 'AllocationID', label: 'Allocation ID', getValue: a => a.AllocationID || (a as any).allocation_id },
+    { key: 'StudentName', label: 'Student Name', getValue: a => a.StudentName || a.StudentID || (a as any).student_id },
+    { key: 'RoomNo', label: 'Room No', getValue: a => a.RoomNo || (a as any).room_no },
+    { key: 'AcademicTerm', label: 'Academic Term', getValue: a => `${a.AcademicYear} (${a.Semester})` },
+    { key: 'Status', label: 'Status', getValue: a => !a.CheckOutDate ? 'Active' : 'Checked Out' },
+    { key: 'actions', label: 'Actions', sortable: false }
+  ];
+
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredAllocations } = useTableFeatures(allocations, columns);
 
   const [formData, setFormData] = useState<Partial<RoomAllocation>>({
     AllocationID: `ALLOC-${Date.now().toString().slice(-4)}`,
@@ -78,26 +92,26 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
           </p>
         </div>
 
-        <button className="btn btn-primary" onClick={handleOpenAdd}>
-          <Plus size={16} />
-          Allocate Room
-        </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <TableControls 
+            columns={columns} 
+            searchCol={searchCol} 
+            setSearchCol={setSearchCol} 
+            searchText={searchText} 
+            setSearchText={setSearchText}
+          />
+          <button className="btn btn-primary" onClick={handleOpenAdd}>
+            <Plus size={16} />
+            Allocate Room
+          </button>
+        </div>
       </div>
 
       <div className="data-table-container">
         <table className="data-table">
-          <thead>
-            <tr>
-              <th>Allocation ID</th>
-              <th>Student Name</th>
-              <th>Room No</th>
-              <th>Academic Term</th>
-              <th>Status</th>
-              <th style={{ textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
+          <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
-            {allocations.map((alloc) => {
+            {filteredAllocations.map((alloc) => {
               const allocId = alloc.AllocationID || (alloc as any).allocation_id;
               const isActive = !alloc.CheckOutDate;
               const sId = alloc.StudentID || (alloc as any).student_id;

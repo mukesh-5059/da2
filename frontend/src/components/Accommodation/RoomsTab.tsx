@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Room, RoomType, Hostel, Warden } from '../../types';
 import { Plus, Edit2, Trash2, LayoutGrid, Table, Eye, Layers, ArrowLeft, Building2, MapPin, UserCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { TableControls } from '../TableControls';
+import { TableHeader } from '../TableHeader';
 
 interface RoomsTabProps {
   rooms: Room[];
@@ -32,6 +35,19 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
   loading = false,
 }) => {
   const [viewMode, setViewMode] = useState<'matrix' | 'table'>('matrix');
+
+  const columns: ColumnDef<Room>[] = [
+    { key: 'RoomNo', label: 'Room No', getValue: r => r.RoomNo || (r as any).room_no },
+    { key: 'Floor', label: 'Floor', getValue: r => `Floor ${r.FloorNo !== undefined ? r.FloorNo : (r as any).floor_no}` },
+    { key: 'RoomType', label: 'Room Type', getValue: r => r.Type || (r as any).type_name },
+    { key: 'Capacity', label: 'Capacity', getValue: r => `${r.Capacity || (r as any).capacity || 1} Beds` },
+    { key: 'Rent', label: 'Rent', getValue: r => `₹${r.RoomRent || (r as any).rent_per_month || (r as any).RoomRent || 0}` },
+    { key: 'Status', label: 'Status', getValue: r => r.Status || (r as any).status },
+    { key: 'actions', label: 'Actions', sortable: false }
+  ];
+
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredRooms } = useTableFeatures(rooms, columns);
+
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
 
@@ -131,8 +147,8 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
   }, {} as Record<string, Room[]>);
 
   // Pagination for Data Grid
-  const totalPages = Math.ceil(rooms.length / pageSize) || 1;
-  const paginatedRooms = rooms.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(filteredRooms.length / pageSize) || 1;
+  const paginatedRooms = filteredRooms.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
@@ -334,10 +350,22 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                 </button>
               </div>
 
-              <button className="btn btn-primary" onClick={handleOpenAddRoom}>
-                <Plus size={16} />
-                Add Room
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {viewMode === 'table' && (
+                  <TableControls 
+                    columns={columns} 
+                    searchCol={searchCol} 
+                    setSearchCol={setSearchCol} 
+                    searchText={searchText} 
+                    setSearchText={setSearchText}
+                    onSearchChange={() => setCurrentPage(1)}
+                  />
+                )}
+                <button className="btn btn-primary" onClick={handleOpenAddRoom}>
+                  <Plus size={16} />
+                  Add Room
+                </button>
+              </div>
             </div>
           </div>
 
@@ -409,17 +437,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
             /* DATA GRID VIEW WITH PAGINATION */
             <div className="data-table-container">
               <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Room No</th>
-                    <th>Floor</th>
-                    <th>Room Type</th>
-                    <th>Capacity</th>
-                    <th>Rent</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
+                <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
                 <tbody>
                   {paginatedRooms.map((room) => {
                     const rNo = room.RoomNo || (room as any).room_no;
@@ -463,7 +481,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
               {totalPages > 1 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' }}>
                   <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Showing page {currentPage} of {totalPages} ({rooms.length} total rooms)
+                    Showing page {currentPage} of {totalPages} ({filteredRooms.length} total rooms)
                   </span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button

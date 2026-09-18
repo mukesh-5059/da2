@@ -5,6 +5,9 @@ import { EditBillModal } from './EditBillModal';
 import { RecordPaymentModal } from './RecordPaymentModal';
 import { BillProfileModal } from './BillProfileModal';
 import { TransactionAuditModal } from './TransactionAuditModal';
+import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
+import { TableControls } from '../TableControls';
+import { TableHeader } from '../TableHeader';
 interface FinancialsTabProps {
   bills: MonthlyBill[];
   transactions: PaymentTransaction[];
@@ -30,7 +33,34 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
 }) => {
   const [subTab, setSubTab] = useState<'bills' | 'transactions'>('bills');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING' | 'OVERDUE'>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  
+  const billsColumns: ColumnDef<MonthlyBill>[] = [
+    { key: 'BillID', label: 'Bill ID', getValue: b => b.BillID || (b as any).bill_id },
+    { key: 'StudentName', label: 'Student Name', getValue: b => `${b.FirstName || ''} ${b.LastName || ''}`.trim() || b.StudentName || b.StudentID || (b as any).student_id },
+    { key: 'Period', label: 'Period', getValue: b => `${['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][b.BillingMonth || (b as any).billing_month] || `M${b.BillingMonth}`} ${b.BillingYear || (b as any).billing_year}` },
+    { key: 'TotalAmount', label: 'Total Amount', getValue: b => b.TotalAmount || (b as any).total_amount || 0 },
+    { key: 'Status', label: 'Status', getValue: b => b.PaymentStatus || (b as any).payment_status || 'PENDING' },
+    { key: 'actions', label: 'Actions', sortable: false }
+  ];
+
+  const txnColumns: ColumnDef<PaymentTransaction>[] = [
+    { key: 'TransactionID', label: 'Transaction ID', getValue: t => t.PaymentID || (t as any).payment_id },
+    { key: 'StudentName', label: 'Student Name', getValue: t => `${t.FirstName || ''} ${t.LastName || ''}`.trim() || t.StudentID || (t as any).student_id || 'Student' },
+    { key: 'PaymentMode', label: 'Payment Mode', getValue: t => t.PaymentMode || (t as any).payment_mode },
+    { key: 'AmountPaid', label: 'Amount Paid', getValue: t => t.AmountPaid || (t as any).amount_paid || 0 },
+    { key: 'PaymentDate', label: 'Payment Date', getValue: t => t.PaymentDate || (t as any).payment_date },
+    { key: 'actions', label: 'Actions', sortable: false }
+  ];
+
+  // For bills, filter by status first
+  const statusFilteredBills = bills.filter((b) => {
+    const status = b.PaymentStatus || (b as any).payment_status || 'PENDING';
+    if (statusFilter !== 'ALL' && status !== statusFilter) return false;
+    return true;
+  });
+
+  const billsTable = useTableFeatures(statusFilteredBills, billsColumns);
+  const txnTable = useTableFeatures(transactions, txnColumns);
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
   const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
@@ -71,18 +101,6 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
   
   const pendingStudentsCount = new Set(pendingBills.map(b => b.StudentID || (b as any).student_id)).size;
   const overdueStudentsCount = new Set(overdueBills.map(b => b.StudentID || (b as any).student_id)).size;
-
-  const filteredBills = bills.filter((b) => {
-    const status = b.PaymentStatus || (b as any).payment_status || 'PENDING';
-    if (statusFilter !== 'ALL' && status !== statusFilter) return false;
-
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    const sId = b.StudentID || (b as any).student_id || '';
-    const bId = b.BillID || (b as any).bill_id || '';
-    const sName = `${b.FirstName || ''} ${b.LastName || ''} ${b.StudentName || ''}`.toLowerCase();
-    return sId.toLowerCase().includes(q) || bId.toLowerCase().includes(q) || sName.includes(q);
-  });
 
   return (
     <div>
@@ -167,38 +185,27 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
               ))}
             </div>
 
-            <div className="search-bar" style={{ padding: '8px 14px', width: '280px' }}>
-              <Search size={16} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Search bill or student name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            <TableControls 
+              columns={billsColumns} 
+              searchCol={billsTable.searchCol} 
+              setSearchCol={billsTable.setSearchCol} 
+              searchText={billsTable.searchText} 
+              setSearchText={billsTable.setSearchText}
+            />
           </div>
 
           <div className="data-table-container">
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Bill ID</th>
-                  <th>Student Name</th>
-                  <th>Period</th>
-                  <th>Total Amount</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
+              <TableHeader columns={billsColumns} sortCol={billsTable.sortCol} sortDir={billsTable.sortDir} onSort={billsTable.handleSort} />
               <tbody>
-                {filteredBills.length === 0 ? (
+                {billsTable.processedData.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No financial billing records match the selected status or search filter.
                     </td>
                   </tr>
                 ) : (
-                  filteredBills.map((b) => {
+                  billsTable.processedData.map((b) => {
                     const status = b.PaymentStatus || (b as any).payment_status || 'PENDING';
                     const isPaid = status === 'PAID';
                     const isOverdue = status === 'OVERDUE';
@@ -258,34 +265,34 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
 
       {subTab === 'transactions' && (
         <div>
-          <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Payment Ledger & Audit Log</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Clean transaction table (`PAYMENT_TRANSACTION` relation). Click row or "View Details" to open audit modal.
-            </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'flex-start' }}>
+            <div>
+              <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>Payment Ledger & Audit Log</h2>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Clean transaction table (`PAYMENT_TRANSACTION` relation). Click row or "View Details" to open audit modal.
+              </p>
+            </div>
+            <TableControls 
+              columns={txnColumns} 
+              searchCol={txnTable.searchCol} 
+              setSearchCol={txnTable.setSearchCol} 
+              searchText={txnTable.searchText} 
+              setSearchText={txnTable.setSearchText}
+            />
           </div>
 
           <div className="data-table-container">
             <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Transaction ID</th>
-                  <th>Student Name</th>
-                  <th>Payment Mode</th>
-                  <th>Amount Paid</th>
-                  <th>Payment Date</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
+              <TableHeader columns={txnColumns} sortCol={txnTable.sortCol} sortDir={txnTable.sortDir} onSort={txnTable.handleSort} />
               <tbody>
-                {transactions.length === 0 ? (
+                {txnTable.processedData.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
                       No payment transactions recorded yet.
                     </td>
                   </tr>
                 ) : (
-                  transactions.map((t) => {
+                  txnTable.processedData.map((t) => {
                     const tId = t.PaymentID || (t as any).payment_id;
                     const sId = t.StudentID || (t as any).student_id;
                     const name = `${t.FirstName || ''} ${t.LastName || ''}`.trim() || sId || 'Student';

@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({ viewMode, onToggleViewMode }) =>
           onClick={() => onToggleViewMode('pure_tables')}
           style={{ padding: '6px 16px', borderRadius: '20px', fontWeight: 600, outline: 'none' }}
         >
-          Pure Tables
+          Tables
         </button>
       </div>
     </header>
