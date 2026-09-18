@@ -27,6 +27,7 @@ import {
 import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
+import { PaginationFooter } from '../PaginationFooter';
 
 interface InventoryTabProps {
   messes: Mess[];
@@ -241,7 +242,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             </TableControls>
           </div>
 
-          <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
+          <div className="data-table-container">
             <table className="data-table">
               <TableHeader columns={stockColumns} sortCol={stockTable.sortCol} sortDir={stockTable.sortDir} onSort={stockTable.handleSort} />
               <tbody>
@@ -252,7 +253,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  stockTable.processedData.map((s) => {
+                  stockTable.paginatedData.map((s) => {
                     return (
                       <tr key={`${s.MessID}-${s.ItemID}`}>
                         <td>
@@ -286,6 +287,13 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                 )}
               </tbody>
             </table>
+            <PaginationFooter
+              currentPage={stockTable.currentPage}
+              totalPages={stockTable.totalPages}
+              setCurrentPage={stockTable.setCurrentPage}
+              itemsPerPage={stockTable.itemsPerPage}
+              totalItems={stockTable.processedData.length}
+            />
           </div>
         </div>
       )}
@@ -329,7 +337,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
             {filteredItems.map((item) => (
-              <div key={item.ItemID} className="card-glass" style={{ padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div key={item.ItemID} className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <h3 style={{ fontSize: '1.1rem', color: 'var(--text-primary)' }}>{item.ItemName}</h3>
@@ -404,7 +412,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
             </TableControls>
           </div>
 
-          <div className="card-glass" style={{ padding: 0, overflowY: 'auto', maxHeight: 'calc(100vh - 320px)' }}>
+          <div className="data-table-container">
             <table className="data-table">
               <TableHeader columns={procurementColumns} sortCol={procurementTable.sortCol} sortDir={procurementTable.sortDir} onSort={procurementTable.handleSort} />
               <tbody>
@@ -415,7 +423,7 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  procurementTable.processedData.map((p) => (
+                  procurementTable.paginatedData.map((p) => (
                     <tr key={p.PurchaseID}>
                       <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>{p.PurchaseID}</td>
                       <td>{p.MessName || p.MessID}</td>
@@ -450,6 +458,13 @@ export const InventoryTab: React.FC<InventoryTabProps> = ({
                 )}
               </tbody>
             </table>
+            <PaginationFooter
+              currentPage={procurementTable.currentPage}
+              totalPages={procurementTable.totalPages}
+              setCurrentPage={procurementTable.setCurrentPage}
+              itemsPerPage={procurementTable.itemsPerPage}
+              totalItems={procurementTable.processedData.length}
+            />
           </div>
         </div>
       )}

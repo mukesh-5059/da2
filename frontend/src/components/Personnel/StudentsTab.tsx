@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Phone, Mail, GraduationCap, Heart, Shield, Chevron
 import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
+import { PaginationFooter } from '../PaginationFooter';
 
 interface StudentsTabProps {
   students: Student[];
@@ -32,10 +33,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredStudents } = useTableFeatures(students, columns);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 12;
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(students, columns);
 
   const [formData, setFormData] = useState<Partial<Student>>({
     StudentID: '',
@@ -95,9 +93,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
 
 
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredStudents.length / pageSize) || 1;
-  const paginatedStudents = filteredStudents.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
 
   return (
     <div>
@@ -126,7 +122,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
         </div>
       </div>
 
-      {filteredStudents.length === 0 ? (
+      {processedData.length === 0 ? (
         <div className="card-glass" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
           No resident students found matching search criteria.
         </div>
@@ -135,7 +131,7 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
         <table className="data-table">
           <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
-            {paginatedStudents.map((student) => {
+            {paginatedData.map((student) => {
               const sId = student.StudentID || (student as any).student_id;
               const fName = student.FirstName || (student as any).name || (student as any).FirstName || '';
               const lName = student.LastName || '';
@@ -183,32 +179,13 @@ export const StudentsTab: React.FC<StudentsTabProps> = ({
           </tbody>
         </table>
 
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Showing page {currentPage} of {totalPages} ({filteredStudents.length} total students)
-            </span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              >
-                <ChevronLeft size={14} /> Previous
-              </button>
-              <button
-                className="btn btn-secondary"
-                style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              >
-                Next <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
+        <PaginationFooter
+          currentPage={currentPage}
+          totalPages={totalPages}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={processedData.length}
+        />
       </div>
       )}
 

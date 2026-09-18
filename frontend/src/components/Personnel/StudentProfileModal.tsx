@@ -32,10 +32,12 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
     Address: '',
   });
 
+  const unwrap = <T,>(res: any): T[] => (Array.isArray(res) ? res : res?.data || []);
+
   const loadGuardians = () => {
     if (student) {
       const sId = student.StudentID || (student as any).student_id;
-      api.getGuardians(sId).then(setGuardians).catch(console.error);
+      api.getGuardians(sId).then((res) => setGuardians(unwrap<Guardian>(res))).catch(console.error);
     }
   };
 
@@ -50,7 +52,13 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
         api.getMonthlyBills(sId),
         api.getPaymentTransactions(),
       ])
-        .then(([gList, aList, mList, bList, pList]) => {
+        .then(([gRes, aRes, mRes, bRes, pRes]) => {
+          const gList = unwrap<Guardian>(gRes);
+          const aList = unwrap<RoomAllocation>(aRes);
+          const mList = unwrap<MessEnrollment>(mRes);
+          const bList = unwrap<MonthlyBill>(bRes);
+          const pList = unwrap<PaymentTransaction>(pRes);
+
           setGuardians(gList);
           setAllocations(aList.filter((a) => (a.StudentID || (a as any).student_id) === sId));
           setMessEnrollments(mList);

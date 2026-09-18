@@ -347,6 +347,11 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
   const [searchText, setSearchText] = useState('');
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [isServerPaginated, setIsServerPaginated] = useState(false);
+  const pageSize = 100;
 
   const activeConfig = TABLES[activeTableIdx];
 
@@ -355,13 +360,33 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
     setSearchText('');
     setSortCol(null);
     setSortDir('asc');
+    setCurrentPage(1);
   }, [activeTableIdx]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, sortCol, sortDir]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await activeConfig.fetch();
-      setData(res);
+      const params = {
+        page: currentPage,
+        limit: pageSize,
+        search: searchText,
+        sortCol: sortCol || '',
+        sortDir: sortDir
+      };
+      const res = await activeConfig.fetch(params);
+      if (res && typeof res === 'object' && 'totalRecords' in res) {
+        setData(res.data);
+        setTotalRecords(res.totalRecords);
+        setIsServerPaginated(true);
+      } else {
+        setData(res);
+        setTotalRecords(res.length);
+        setIsServerPaginated(false);
+      }
     } catch (e) {
       console.error(e);
       alert('Failed to load table data');
@@ -370,6 +395,7 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
   };
 
   const processedData = useMemo(() => {
+    if (isServerPaginated) return data;
     let result = [...data];
     
     if (searchText) {
@@ -409,16 +435,25 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
     }
 
     return result;
-  }, [data, searchCol, searchText, sortCol, sortDir]);
+  }, [data, searchCol, searchText, sortCol, sortDir, isServerPaginated]);
 
+  const totalPages = isServerPaginated 
+    ? Math.max(1, Math.ceil(totalRecords / pageSize)) 
+    : Math.max(1, Math.ceil(processedData.length / pageSize));
+    
+  const paginatedData = useMemo(() => {
+    if (isServerPaginated) return data;
+    const start = (currentPage - 1) * pageSize;
+    return processedData.slice(start, start + pageSize);
+  }, [processedData, currentPage, isServerPaginated, data]);
+
+  // Debounce-like effect for loading data on param change
   useEffect(() => {
-    loadData();
-    // clear highlight when tab changes externally (we will handle internal change specially)
-    // wait, if we clear it here, it will clear immediately when we set it!
-    // So we don't clear it on activeTableIdx change. We clear it on unmount or maybe keep it?
-    // Actually, we can just keep it. It's harmless if a row ID happens to match in another table,
-    // but we can also just clear it if the user clicks somewhere else.
-  }, [activeTableIdx]);
+    const timer = setTimeout(() => {
+      loadData();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [activeTableIdx, currentPage, searchText, sortCol, sortDir]);
 
   useEffect(() => {
     if (highlightedRowId && !loading) {
@@ -556,8 +591,8 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
                 </tr>
               </thead>
               <tbody>
-                {processedData.map((row, idx) => {
-                  const pKey = row[activeConfig.primaryKey] || idx;
+                {paginatedData.map((row, idx) => {
+                  const pKey = row[activeConfig.primaryKey] || ((currentPage - 1) * pageSize + idx);
                   const isHighlighted = String(pKey) === highlightedRowId;
                   return (
                     <tr 
@@ -612,6 +647,32 @@ export const PureTablesView: React.FC<{ activeTableIdx: number, onTabChange: (id
                 )}
               </tbody>
             </table>
+            
+            {!loading && paginatedData.length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', padding: '0 8px 16px 8px' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, isServerPaginated ? totalRecords : processedData.length)} of {isServerPaginated ? totalRecords : processedData.length} entries
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button  
+                    className="btn btn-secondary" 
+                    style={{ padding: '6px 12px', fontSize: '0.85rem', opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  >
+                    Previous
+                  </button>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '6px 12px', fontSize: '0.85rem', opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

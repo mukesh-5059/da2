@@ -154,7 +154,7 @@ h1, h2, h3, h4, h5 {
 }
 
 /* Data Cards & Grids */
-.card {
+.card, .card-glass {
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
@@ -162,7 +162,7 @@ h1, h2, h3, h4, h5 {
   transition: border-color 0.2s;
 }
 
-.card:hover {
+.card:hover, .card-glass:hover {
   border-color: var(--border-medium);
 }
 
@@ -200,13 +200,13 @@ h1, h2, h3, h4, h5 {
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
-  overflow-y: auto;
+  overflow: auto;
   max-height: calc(100vh - 280px);
 }
 
 .data-table {
   width: 100%;
-  border-collapse: separate;
+  border-collapse: collapse;
   border-spacing: 0;
   text-align: left;
   font-size: 0.9rem;
@@ -214,9 +214,7 @@ h1, h2, h3, h4, h5 {
 }
 
 .data-table th {
-  background-color: rgba(17, 23, 35, 0.85); /* var(--bg-surface) but translucent */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background-color: var(--bg-card);
   color: var(--text-secondary);
   font-weight: 600;
   padding: 14px 20px;
@@ -245,10 +243,6 @@ h1, h2, h3, h4, h5 {
 }
 
 /* Rounded corners for first and last cells in a row */
-.data-table tr:first-child td:first-child { border-top-left-radius: 8px; }
-.data-table tr:first-child td:last-child { border-top-right-radius: 8px; }
-.data-table tr:last-child td:first-child { border-bottom-left-radius: 8px; }
-.data-table tr:last-child td:last-child { border-bottom-right-radius: 8px; }
 
 
 /* Floor Matrix View */

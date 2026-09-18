@@ -4,6 +4,7 @@ import { Plus, UserCheck, Calendar, LogOut, CheckCircle, Clock, Edit2, Trash2, U
 import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
+import { PaginationFooter } from '../PaginationFooter';
 
 interface AllocationsTabProps {
   allocations: RoomAllocation[];
@@ -39,7 +40,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredAllocations } = useTableFeatures(allocations, columns);
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(allocations, columns);
 
   const [formData, setFormData] = useState<Partial<RoomAllocation>>({
     AllocationID: `ALLOC-${Date.now().toString().slice(-4)}`,
@@ -111,7 +112,7 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
         <table className="data-table">
           <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
-            {filteredAllocations.map((alloc) => {
+            {paginatedData.map((alloc) => {
               const allocId = alloc.AllocationID || (alloc as any).allocation_id;
               const isActive = !alloc.CheckOutDate;
               const sId = alloc.StudentID || (alloc as any).student_id;
@@ -164,6 +165,13 @@ export const AllocationsTab: React.FC<AllocationsTabProps> = ({
             })}
           </tbody>
         </table>
+        <PaginationFooter
+          currentPage={currentPage}
+          totalPages={totalPages}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={processedData.length}
+        />
       </div>
 
       {/* Allocation Detail Popup Modal */}

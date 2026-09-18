@@ -8,6 +8,7 @@ import { TransactionAuditModal } from './TransactionAuditModal';
 import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
+import { PaginationFooter } from '../PaginationFooter';
 interface FinancialsTabProps {
   bills: MonthlyBill[];
   transactions: PaymentTransaction[];
@@ -205,7 +206,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  billsTable.processedData.map((b) => {
+                  billsTable.paginatedData.map((b) => {
                     const status = b.PaymentStatus || (b as any).payment_status || 'PENDING';
                     const isPaid = status === 'PAID';
                     const isOverdue = status === 'OVERDUE';
@@ -259,6 +260,13 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                 )}
               </tbody>
             </table>
+            <PaginationFooter
+              currentPage={billsTable.currentPage}
+              totalPages={billsTable.totalPages}
+              setCurrentPage={billsTable.setCurrentPage}
+              itemsPerPage={billsTable.itemsPerPage}
+              totalItems={billsTable.processedData.length}
+            />
           </div>
         </div>
       )}
@@ -292,7 +300,7 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  txnTable.processedData.map((t) => {
+                  txnTable.paginatedData.map((t) => {
                     const tId = t.PaymentID || (t as any).payment_id;
                     const sId = t.StudentID || (t as any).student_id;
                     const name = `${t.FirstName || ''} ${t.LastName || ''}`.trim() || sId || 'Student';
@@ -327,6 +335,13 @@ export const FinancialsTab: React.FC<FinancialsTabProps> = ({
                 )}
               </tbody>
             </table>
+            <PaginationFooter
+              currentPage={txnTable.currentPage}
+              totalPages={txnTable.totalPages}
+              setCurrentPage={txnTable.setCurrentPage}
+              itemsPerPage={txnTable.itemsPerPage}
+              totalItems={txnTable.processedData.length}
+            />
           </div>
         </div>
       )}

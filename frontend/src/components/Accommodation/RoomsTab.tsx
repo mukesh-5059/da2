@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, LayoutGrid, Table, Eye, Layers, ArrowLeft, Buildin
 import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
+import { PaginationFooter } from '../PaginationFooter';
 
 interface RoomsTabProps {
   rooms: Room[];
@@ -46,10 +47,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
     { key: 'actions', label: 'Actions', sortable: false }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredRooms } = useTableFeatures(rooms, columns);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 15;
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(rooms, columns);
 
   // Room Modal State
   const [showRoomModal, setShowRoomModal] = useState(false);
@@ -146,9 +144,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
     return acc;
   }, {} as Record<string, Room[]>);
 
-  // Pagination for Data Grid
-  const totalPages = Math.ceil(filteredRooms.length / pageSize) || 1;
-  const paginatedRooms = filteredRooms.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
 
   return (
     <div>
@@ -439,7 +435,7 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
               <table className="data-table">
                 <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
                 <tbody>
-                  {paginatedRooms.map((room) => {
+                  {paginatedData.map((room) => {
                     const rNo = room.RoomNo || (room as any).room_no;
                     const fNo = room.FloorNo !== undefined ? room.FloorNo : (room as any).floor_no;
                     const rType = room.Type || (room as any).type_name;
@@ -477,32 +473,13 @@ export const RoomsTab: React.FC<RoomsTabProps> = ({
                 </tbody>
               </table>
 
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Showing page {currentPage} of {totalPages} ({filteredRooms.length} total rooms)
-                  </span>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    >
-                      <ChevronLeft size={14} /> Previous
-                    </button>
-                    <button
-                      className="btn btn-secondary"
-                      style={{ padding: '4px 10px', fontSize: '0.8rem' }}
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    >
-                      Next <ChevronRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
+              <PaginationFooter
+                currentPage={currentPage}
+                totalPages={totalPages}
+                setCurrentPage={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={processedData.length}
+              />
             </div>
           )}
         </div>

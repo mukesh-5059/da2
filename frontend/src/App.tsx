@@ -85,8 +85,9 @@ export const App: React.FC = () => {
     let m = messes.find(x => x.MessID === messId || (x as any).mess_id === messId);
     if (!m) {
       try {
-        const allMesses = await api.getMesses();
-        m = allMesses.find(x => x.MessID === messId || (x as any).mess_id === messId);
+        const allMessesRes = await api.getMesses();
+        const allMesses = allMessesRes?.data || allMessesRes || [];
+        m = (allMesses as Mess[]).find(x => x.MessID === messId || (x as any).mess_id === messId);
       } catch (e) {
         console.error('Failed to load mess details');
       }
@@ -111,6 +112,8 @@ export const App: React.FC = () => {
     }
   };
 
+  const unwrap = (res: any) => res?.data || res || [];
+
   // 1. Initial Metadata Load (Hostels, Wardens, RoomTypes)
   const loadBaseMetadata = async () => {
     try {
@@ -119,9 +122,9 @@ export const App: React.FC = () => {
         api.getRoomTypes(),
         api.getWardens(),
       ]);
-      setHostels(hList);
-      setRoomTypes(rtList);
-      setWardens(wList);
+      setHostels(unwrap(hList));
+      setRoomTypes(unwrap(rtList));
+      setWardens(unwrap(wList));
     } catch (err: any) {
       showError(err.message || 'Failed to connect to backend REST API');
     }
@@ -138,16 +141,16 @@ export const App: React.FC = () => {
       if (activeNavTab === 'accommodations') {
         if (subTab === 'rooms') {
           const rList = await api.getRooms(selectedHostelId);
-          setRooms(rList);
+          setRooms(unwrap(rList));
         } else if (subTab === 'allocations') {
           const [aList, sList] = await Promise.all([api.getAllocations(), api.getStudents()]);
-          setAllocations(aList);
-          setStudents(sList);
+          setAllocations(unwrap(aList));
+          setStudents(unwrap(sList));
         }
       } else if (activeNavTab === 'personnel') {
         const [sList, stList] = await Promise.all([api.getStudents(), api.getStaff()]);
-        setStudents(sList);
-        setStaff(stList);
+        setStudents(unwrap(sList));
+        setStaff(unwrap(stList));
       } else if (activeNavTab === 'mess') {
         const [mList, mlList, schList, enrList, sList] = await Promise.all([
           api.getMesses(),
@@ -156,11 +159,11 @@ export const App: React.FC = () => {
           api.getMessEnrollments(),
           api.getStudents(),
         ]);
-        setMesses(mList);
-        setMeals(mlList);
-        setSchedules(schList);
-        setMessEnrollments(enrList);
-        setStudents(sList);
+        setMesses(unwrap(mList));
+        setMeals(unwrap(mlList));
+        setSchedules(unwrap(schList));
+        setMessEnrollments(unwrap(enrList));
+        setStudents(unwrap(sList));
       } else if (activeNavTab === 'inventory') {
         const [supList, itmList, stkList, procList, mList] = await Promise.all([
           api.getSuppliers(),
@@ -169,20 +172,20 @@ export const App: React.FC = () => {
           api.getProcurementEvents(),
           api.getMesses(),
         ]);
-        setSuppliers(supList);
-        setInventoryItems(itmList);
-        setInventoryStock(stkList);
-        setProcurementEvents(procList);
-        setMesses(mList);
+        setSuppliers(unwrap(supList));
+        setInventoryItems(unwrap(itmList));
+        setInventoryStock(unwrap(stkList));
+        setProcurementEvents(unwrap(procList));
+        setMesses(unwrap(mList));
       } else if (activeNavTab === 'financials') {
         const [bList, tList, sList] = await Promise.all([
           api.getMonthlyBills(),
           api.getPaymentTransactions(),
           api.getStudents(),
         ]);
-        setBills(bList);
-        setTransactions(tList);
-        setStudents(sList);
+        setBills(unwrap(bList));
+        setTransactions(unwrap(tList));
+        setStudents(unwrap(sList));
       }
     } catch (err: any) {
       showError(err.message || 'Failed to load tab data');

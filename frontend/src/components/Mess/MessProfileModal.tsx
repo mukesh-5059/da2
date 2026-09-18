@@ -26,17 +26,17 @@ export const MessProfileModal: React.FC<MessProfileModalProps> = ({ mess, onClos
 
   const loadData = async () => {
     if (!mess) return;
+    const mId = mess.MessID || (mess as any).mess_id;
     setLoading(true);
     try {
-      // Assuming getMeals and getMessSchedules can take a messId filter
-      // If not, we fetch all and filter in memory
-      const [allMeals, allSchedules] = await Promise.all([
-        api.getMeals(),
-        api.getMessSchedules()
+      const [mealsRes, schedulesRes] = await Promise.all([
+        api.getMeals(mId),
+        api.getMessSchedules(mId)
       ]);
-      const mId = mess.MessID || (mess as any).mess_id;
-      setMeals(allMeals.filter(m => (m.MessID || (m as any).mess_id) === mId));
-      setSchedules(allSchedules.filter(s => (s.MessID || (s as any).mess_id) === mId));
+      const allMeals: Meal[] = (Array.isArray(mealsRes) ? mealsRes : (mealsRes as any)?.data) || [];
+      const allSchedules: MessSchedule[] = (Array.isArray(schedulesRes) ? schedulesRes : (schedulesRes as any)?.data) || [];
+      setMeals(allMeals);
+      setSchedules(allSchedules);
     } catch (e) {
       console.error(e);
     } finally {

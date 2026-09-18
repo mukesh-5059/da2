@@ -12,6 +12,8 @@ export function useTableFeatures<T>(data: T[], columns: ColumnDef<T>[]) {
   const [searchText, setSearchText] = useState('');
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
 
   const processedData = useMemo(() => {
     let result = [...data];
@@ -71,6 +73,13 @@ export function useTableFeatures<T>(data: T[], columns: ColumnDef<T>[]) {
     }
   };
 
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return processedData.slice(start, start + itemsPerPage);
+  }, [processedData, currentPage, itemsPerPage]);
+
+  const totalPages = Math.max(1, Math.ceil(processedData.length / itemsPerPage));
+
   return {
     searchCol,
     setSearchCol,
@@ -79,6 +88,11 @@ export function useTableFeatures<T>(data: T[], columns: ColumnDef<T>[]) {
     sortCol,
     sortDir,
     handleSort,
-    processedData
+    processedData,
+    paginatedData,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    itemsPerPage
   };
 }

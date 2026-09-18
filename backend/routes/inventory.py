@@ -8,9 +8,11 @@ def get_suppliers():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM SUPPLIER")
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        query = "SELECT * FROM SUPPLIER"
+        from utils import paginate_query
+        search_columns = ['SupplierID', 'SupplierName', 'Phone', 'Email']
+        result = paginate_query(cursor, query, search_columns)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -69,12 +71,15 @@ def get_inventory_items():
     try:
         conn = get_db()
         cursor = conn.cursor()
+        query = "SELECT * FROM INVENTORY_ITEM"
+        params = []
         if category:
-            cursor.execute("SELECT * FROM INVENTORY_ITEM WHERE Category=?", (category,))
-        else:
-            cursor.execute("SELECT * FROM INVENTORY_ITEM")
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+            query += " WHERE Category=?"
+            params.append(category)
+        from utils import paginate_query
+        search_columns = ['ItemID', 'ItemName', 'Category', 'Unit']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -154,9 +159,10 @@ def get_procurement_events():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['p.PurchaseID', 'm.MessName', 's.SupplierName', 'i.ItemName']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -227,9 +233,10 @@ def get_inventory_stock():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['s.MessID', 's.ItemID', 'm.MessName', 'i.ItemName', 'i.Category']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

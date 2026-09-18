@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, UserCheck, DollarSign, Clock, Utensils, Shield, Sp
 import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
+import { PaginationFooter } from '../PaginationFooter';
 
 interface StaffTabProps {
   staff: Staff[];
@@ -31,7 +32,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({
     { key: 'Salary', label: 'Salary / Mo', getValue: s => s.Salary }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredStaff } = useTableFeatures(staff, columns);
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(staff, columns);
 
   const [formData, setFormData] = useState<Partial<Staff>>({
     StaffID: '',
@@ -106,7 +107,7 @@ export const StaffTab: React.FC<StaffTabProps> = ({
         <table className="data-table">
           <TableHeader columns={columns} sortCol={sortCol} sortDir={sortDir} onSort={handleSort} />
           <tbody>
-            {filteredStaff.map((st) => (
+            {paginatedData.map((st) => (
               <tr key={st.StaffID}>
                 <td>
                   <div
@@ -155,6 +156,13 @@ export const StaffTab: React.FC<StaffTabProps> = ({
             ))}
           </tbody>
         </table>
+        <PaginationFooter
+          currentPage={currentPage}
+          totalPages={totalPages}
+          setCurrentPage={setCurrentPage}
+          itemsPerPage={itemsPerPage}
+          totalItems={processedData.length}
+        />
       </div>
 
       {showModal && (

@@ -6,7 +6,7 @@ const API_BASE = '/api';
 
 // Set this to true to use dummy data and disconnect from backend.
 // Change it to false when the real backend is ready to be tested.
-export const USE_MOCK_API = true;
+export const USE_MOCK_API = false;
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -18,9 +18,10 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 const realApi = {
   // Hostels
-  getHostels: async (): Promise<Hostel[]> => {
-    const res = await fetch(`${API_BASE}/hostels`);
-    return handleResponse<Hostel[]>(res);
+  getHostels: async (params?: any): Promise<{data: Hostel[], totalRecords: number} | Hostel[]> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(`${API_BASE}/hostels${qs}`);
+    return handleResponse(res);
   },
   createHostel: async (data: Partial<Hostel>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/hostels`, {
@@ -44,9 +45,10 @@ const realApi = {
   },
 
   // Room Types
-  getRoomTypes: async (): Promise<RoomType[]> => {
-    const res = await fetch(`${API_BASE}/room-types`);
-    return handleResponse<RoomType[]>(res);
+  getRoomTypes: async (params?: any): Promise<{data: RoomType[], totalRecords: number} | RoomType[]> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(`${API_BASE}/room-types${qs}`);
+    return handleResponse(res);
   },
   createRoomType: async (data: Partial<RoomType>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/room-types`, {
@@ -70,10 +72,15 @@ const realApi = {
   },
 
   // Rooms
-  getRooms: async (hostelId?: string): Promise<Room[]> => {
-    const url = hostelId && hostelId !== 'ALL' ? `${API_BASE}/rooms?hostel_id=${hostelId}` : `${API_BASE}/rooms`;
-    const res = await fetch(url);
-    return handleResponse<Room[]>(res);
+  getRooms: async (params?: any): Promise<{data: Room[], totalRecords: number} | Room[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = params !== 'ALL' ? `?hostel_id=${params}` : '';
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/rooms${qs}`);
+    return handleResponse(res);
   },
   createRoom: async (data: Partial<Room>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/rooms`, {
@@ -97,10 +104,15 @@ const realApi = {
   },
 
   // Allocations
-  getAllocations: async (roomNo?: string): Promise<RoomAllocation[]> => {
-    const url = roomNo ? `${API_BASE}/allocations?room_no=${encodeURIComponent(roomNo)}` : `${API_BASE}/allocations`;
-    const res = await fetch(url);
-    return handleResponse<RoomAllocation[]>(res);
+  getAllocations: async (params?: any): Promise<{data: RoomAllocation[], totalRecords: number} | RoomAllocation[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = `?room_no=${encodeURIComponent(params)}`;
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/allocations${qs}`);
+    return handleResponse(res);
   },
   createAllocation: async (data: Partial<RoomAllocation>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/allocations`, {
@@ -124,9 +136,10 @@ const realApi = {
   },
 
   // Wardens
-  getWardens: async (): Promise<Warden[]> => {
-    const res = await fetch(`${API_BASE}/wardens`);
-    return handleResponse<Warden[]>(res);
+  getWardens: async (params?: any): Promise<{data: Warden[], totalRecords: number} | Warden[]> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(`${API_BASE}/wardens${qs}`);
+    return handleResponse(res);
   },
   createWarden: async (data: Partial<Warden>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/wardens`, {
@@ -150,9 +163,10 @@ const realApi = {
   },
 
   // Students
-  getStudents: async (): Promise<Student[]> => {
-    const res = await fetch(`${API_BASE}/students`);
-    return handleResponse<Student[]>(res);
+  getStudents: async (params?: any): Promise<{data: Student[], totalRecords: number} | Student[]> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(`${API_BASE}/students${qs}`);
+    return handleResponse(res);
   },
   createStudent: async (data: Partial<Student>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/students`, {
@@ -176,10 +190,17 @@ const realApi = {
   },
 
   // Guardians
-  getGuardians: async (studentId?: string): Promise<Guardian[]> => {
-    const url = studentId ? `${API_BASE}/guardians?student_id=${studentId}` : `${API_BASE}/guardians`;
-    const res = await fetch(url);
-    return handleResponse<Guardian[]>(res);
+  getGuardians: async (params?: any): Promise<{data: Guardian[], totalRecords: number} | Guardian[]> => {
+    // If it's a string, it's the old studentId param signature. Handle appropriately or rewrite.
+    // For now, PureTablesView will pass an object for pagination.
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = `?student_id=${params}`;
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/guardians${qs}`);
+    return handleResponse(res);
   },
   createGuardian: async (data: Partial<Guardian>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/guardians`, {
@@ -203,9 +224,10 @@ const realApi = {
   },
 
   // Staff
-  getStaff: async (): Promise<Staff[]> => {
-    const res = await fetch(`${API_BASE}/staff`);
-    return handleResponse<Staff[]>(res);
+  getStaff: async (params?: any): Promise<{data: Staff[], totalRecords: number} | Staff[]> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(`${API_BASE}/staff${qs}`);
+    return handleResponse(res);
   },
   createStaff: async (data: Partial<Staff>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/staff`, {
@@ -229,9 +251,10 @@ const realApi = {
   },
 
   // Mess
-  getMesses: async (): Promise<Mess[]> => {
-    const res = await fetch(`${API_BASE}/messes`);
-    return handleResponse<Mess[]>(res);
+  getMesses: async (params?: any): Promise<{data: Mess[], totalRecords: number} | Mess[]> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(`${API_BASE}/messes${qs}`);
+    return handleResponse(res);
   },
   createMess: async (data: Partial<Mess>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/messes`, {
@@ -255,10 +278,15 @@ const realApi = {
   },
 
   // Meals
-  getMeals: async (messId?: string): Promise<Meal[]> => {
-    const url = messId ? `${API_BASE}/meals?mess_id=${messId}` : `${API_BASE}/meals`;
-    const res = await fetch(url);
-    return handleResponse<Meal[]>(res);
+  getMeals: async (params?: any): Promise<{data: Meal[], totalRecords: number} | Meal[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = `?mess_id=${params}`;
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/meals${qs}`);
+    return handleResponse(res);
   },
   createMeal: async (data: Partial<Meal>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/meals`, {
@@ -282,10 +310,15 @@ const realApi = {
   },
 
   // Mess Schedules
-  getMessSchedules: async (messId?: string): Promise<MessSchedule[]> => {
-    const url = messId ? `${API_BASE}/mess-schedules?mess_id=${messId}` : `${API_BASE}/mess-schedules`;
-    const res = await fetch(url);
-    return handleResponse<MessSchedule[]>(res);
+  getMessSchedules: async (params?: any): Promise<{data: MessSchedule[], totalRecords: number} | MessSchedule[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = `?mess_id=${params}`;
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/mess-schedules${qs}`);
+    return handleResponse(res);
   },
   createMessSchedule: async (data: Partial<MessSchedule>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/mess-schedules`, {
@@ -309,10 +342,15 @@ const realApi = {
   },
 
   // Mess Enrollments
-  getMessEnrollments: async (studentId?: string): Promise<MessEnrollment[]> => {
-    const url = studentId ? `${API_BASE}/mess-enrollments?student_id=${studentId}` : `${API_BASE}/mess-enrollments`;
-    const res = await fetch(url);
-    return handleResponse<MessEnrollment[]>(res);
+  getMessEnrollments: async (params?: any): Promise<{data: MessEnrollment[], totalRecords: number} | MessEnrollment[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = `?student_id=${params}`;
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/mess-enrollments${qs}`);
+    return handleResponse(res);
   },
   createMessEnrollment: async (data: Partial<MessEnrollment>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/mess-enrollments`, {
@@ -336,13 +374,18 @@ const realApi = {
   },
 
   // Monthly Bills
-  getMonthlyBills: async (studentId?: string, paymentStatus?: string): Promise<MonthlyBill[]> => {
-    const params = new URLSearchParams();
-    if (studentId) params.append('student_id', studentId);
-    if (paymentStatus) params.append('payment_status', paymentStatus);
-    const url = `${API_BASE}/monthly-bills?${params.toString()}`;
-    const res = await fetch(url);
-    return handleResponse<MonthlyBill[]>(res);
+  getMonthlyBills: async (params?: any, paymentStatus?: string): Promise<{data: MonthlyBill[], totalRecords: number} | MonthlyBill[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        const p = new URLSearchParams();
+        if (params) p.append('student_id', params);
+        if (paymentStatus) p.append('payment_status', paymentStatus);
+        qs = '?' + p.toString();
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/monthly-bills${qs}`);
+    return handleResponse(res);
   },
   createMonthlyBill: async (data: Partial<MonthlyBill>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/monthly-bills`, {
@@ -366,13 +409,18 @@ const realApi = {
   },
 
   // Payment Transactions
-  getPaymentTransactions: async (billId?: string, paymentMode?: string): Promise<PaymentTransaction[]> => {
-    const params = new URLSearchParams();
-    if (billId) params.append('bill_id', billId);
-    if (paymentMode) params.append('payment_mode', paymentMode);
-    const url = `${API_BASE}/payment-transactions?${params.toString()}`;
-    const res = await fetch(url);
-    return handleResponse<PaymentTransaction[]>(res);
+  getPaymentTransactions: async (params?: any, paymentMode?: string): Promise<{data: PaymentTransaction[], totalRecords: number} | PaymentTransaction[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        const p = new URLSearchParams();
+        if (params) p.append('bill_id', params);
+        if (paymentMode) p.append('payment_mode', paymentMode);
+        qs = '?' + p.toString();
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/payment-transactions${qs}`);
+    return handleResponse(res);
   },
   createPaymentTransaction: async (data: Partial<PaymentTransaction>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/payment-transactions`, {
@@ -396,9 +444,10 @@ const realApi = {
   },
 
   // Suppliers
-  getSuppliers: async (): Promise<Supplier[]> => {
-    const res = await fetch(`${API_BASE}/suppliers`);
-    return handleResponse<Supplier[]>(res);
+  getSuppliers: async (params?: any): Promise<{data: Supplier[], totalRecords: number} | Supplier[]> => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    const res = await fetch(`${API_BASE}/suppliers${qs}`);
+    return handleResponse(res);
   },
   createSupplier: async (data: Partial<Supplier>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/suppliers`, {
@@ -422,10 +471,15 @@ const realApi = {
   },
 
   // Inventory Items
-  getInventoryItems: async (category?: string): Promise<InventoryItem[]> => {
-    const url = category ? `${API_BASE}/inventory-items?category=${category}` : `${API_BASE}/inventory-items`;
-    const res = await fetch(url);
-    return handleResponse<InventoryItem[]>(res);
+  getInventoryItems: async (params?: any): Promise<{data: InventoryItem[], totalRecords: number} | InventoryItem[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = `?category=${params}`;
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/inventory-items${qs}`);
+    return handleResponse(res);
   },
   createInventoryItem: async (data: Partial<InventoryItem>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/inventory-items`, {
@@ -449,10 +503,15 @@ const realApi = {
   },
 
   // Inventory Stock
-  getInventoryStock: async (messId?: string): Promise<InventoryStock[]> => {
-    const url = messId ? `${API_BASE}/inventory-stock?mess_id=${messId}` : `${API_BASE}/inventory-stock`;
-    const res = await fetch(url);
-    return handleResponse<InventoryStock[]>(res);
+  getInventoryStock: async (params?: any): Promise<{data: InventoryStock[], totalRecords: number} | InventoryStock[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        qs = `?mess_id=${params}`;
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/inventory-stock${qs}`);
+    return handleResponse(res);
   },
   upsertInventoryStock: async (data: Partial<InventoryStock>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/inventory-stock`, {
@@ -468,13 +527,18 @@ const realApi = {
   },
 
   // Procurement Events
-  getProcurementEvents: async (messId?: string, supplierId?: string): Promise<ProcurementEvent[]> => {
-    const params = new URLSearchParams();
-    if (messId) params.append('mess_id', messId);
-    if (supplierId) params.append('supplier_id', supplierId);
-    const url = `${API_BASE}/procurement-events?${params.toString()}`;
-    const res = await fetch(url);
-    return handleResponse<ProcurementEvent[]>(res);
+  getProcurementEvents: async (params?: any, supplierId?: string): Promise<{data: ProcurementEvent[], totalRecords: number} | ProcurementEvent[]> => {
+    let qs = '';
+    if (typeof params === 'string') {
+        const p = new URLSearchParams();
+        if (params) p.append('mess_id', params);
+        if (supplierId) p.append('supplier_id', supplierId);
+        qs = '?' + p.toString();
+    } else if (params) {
+        qs = '?' + new URLSearchParams(params).toString();
+    }
+    const res = await fetch(`${API_BASE}/procurement-events${qs}`);
+    return handleResponse(res);
   },
   createProcurementEvent: async (data: Partial<ProcurementEvent>): Promise<{ message: string }> => {
     const res = await fetch(`${API_BASE}/procurement-events`, {

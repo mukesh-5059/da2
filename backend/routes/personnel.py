@@ -15,9 +15,10 @@ def get_wardens():
             params.append(designation)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['WardenID', 'FirstName', 'LastName', 'Email', 'Phone', 'Designation']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -95,12 +96,11 @@ def get_students():
             query += ' AND Gender = ?'
             params.append(gender)
             
-        query += ' ORDER BY StudentID'
-        
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['StudentID', 'FirstName', 'LastName', 'Email', 'Phone', 'Department', 'BloodGroup']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -179,9 +179,10 @@ def get_guardians():
             params.append(student_id)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['g.GuardianID', 'g.GuardianName', 'g.Phone', 'g.Email', "s.FirstName || ' ' || s.LastName"]
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -263,12 +264,11 @@ def get_staff():
             query += ' AND HostelID = ?'
             params.append(hostel_id)
             
-        query += ' ORDER BY Role, LastName'
-        
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['StaffID', 'FirstName', 'LastName', 'Phone', 'Role']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

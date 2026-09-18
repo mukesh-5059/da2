@@ -24,7 +24,7 @@ export const RoomDrawer: React.FC<RoomDrawerProps> = ({ room, onClose, onRefresh
       setIsEditing(false);
       setEditFormData(room);
       api.getAllocations(room.RoomNo)
-        .then(setAllocations)
+        .then((res: any) => setAllocations(Array.isArray(res) ? res : res?.data || []))
         .catch(console.error)
         .finally(() => setLoading(false));
     }

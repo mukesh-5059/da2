@@ -32,9 +32,10 @@ def get_complaints():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['c.ComplaintID', 's.FirstName', 's.LastName', 'c.RoomNo', 'c.Category']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -108,9 +109,10 @@ def get_visitor_logs():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['v.VisitID', 'v.VisitorName', 'v.VisitorPhone', 's.FirstName', 's.LastName']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -189,9 +191,10 @@ def get_leave_requests():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['l.LeaveID', 's.FirstName', 's.LastName', 'w.FirstName', 'l.LeaveType']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -273,9 +276,10 @@ def get_attendance_logs():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['a.LogID', 'a.StudentID', 's.FirstName', 's.LastName', 'a.Status']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -350,9 +354,10 @@ def get_notices():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['n.NoticeID', 'n.Title', 'h.HostelName', 'w.FirstName']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

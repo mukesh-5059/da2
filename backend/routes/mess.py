@@ -15,9 +15,10 @@ def get_messes():
             params.append(mess_type)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['MessID', 'MessName', 'Location', 'Phone', 'MessType']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -94,9 +95,10 @@ def get_meals():
             params.append(mess_id)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['m.MealID', 'm.MealName', 'me.MessName', 'm.Description']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -178,9 +180,10 @@ def get_mess_schedules():
             params.append(day_of_week)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['ms.ScheduleID', 'm.MessName', 'me.MealName', 'ms.DayOfWeek', 'ms.MealTime']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -265,9 +268,10 @@ def get_mess_enrollments():
             params.append(is_active)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['me.EnrollmentID', 's.FirstName', 's.LastName', 'm.MessName', 'me.MealPlanType']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

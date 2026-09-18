@@ -19,9 +19,10 @@ def get_hostels():
             params.append(hostel_type)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['h.HostelID', 'h.HostelName', 'h.Location', 'h.HostelType', "w.FirstName || ' ' || w.LastName"]
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -84,9 +85,11 @@ def get_room_types():
     conn = get_db()
     try:
         cursor = conn.cursor()
-        cursor.execute('SELECT * FROM ROOM_TYPE')
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        query = 'SELECT * FROM ROOM_TYPE'
+        from utils import paginate_query
+        search_columns = ['Type']
+        result = paginate_query(cursor, query, search_columns)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -166,9 +169,10 @@ def get_rooms():
             params.append(status)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['r.RoomNo', 'r.Type', 'h.HostelName', 'r.Status']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -252,9 +256,10 @@ def get_allocations():
             params.append(academic_year)
             
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = [dict(r) for r in cursor.fetchall()]
-        return jsonify(rows), 200
+        from utils import paginate_query
+        search_columns = ['a.AllocationID', 'a.RoomNo', 's.FirstName', 's.LastName', 's.Email']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

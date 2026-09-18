@@ -32,9 +32,10 @@ def get_monthly_bills():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['b.BillID', 's.FirstName', 's.LastName', 'b.PaymentStatus']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -113,9 +114,10 @@ def get_payment_transactions():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        cursor.execute(query, params)
-        rows = cursor.fetchall()
-        return jsonify([dict(r) for r in rows]), 200
+        from utils import paginate_query
+        search_columns = ['p.PaymentID', 'b.StudentID', 's.FirstName', 's.LastName', 'p.PaymentMode']
+        result = paginate_query(cursor, query, search_columns, params)
+        return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

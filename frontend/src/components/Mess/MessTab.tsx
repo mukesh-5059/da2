@@ -8,6 +8,7 @@ import { EnrollmentProfileModal } from './EnrollmentProfileModal';
 import { useTableFeatures, ColumnDef } from '../../hooks/useTableFeatures';
 import { TableControls } from '../TableControls';
 import { TableHeader } from '../TableHeader';
+import { PaginationFooter } from '../PaginationFooter';
 
 interface MessTabProps {
   messes: Mess[];
@@ -48,7 +49,7 @@ export const MessTab: React.FC<MessTabProps> = ({
     { key: 'Status', label: 'Status', getValue: () => 'Active' }
   ];
 
-  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredEnrollments } = useTableFeatures(enrollments, enrollColumns);
+  const { searchCol, setSearchCol, searchText, setSearchText, sortCol, sortDir, handleSort, processedData: filteredEnrollments, paginatedData, currentPage, setCurrentPage, totalPages, itemsPerPage } = useTableFeatures(enrollments, enrollColumns);
 
   // Detailed View states
   const [viewingMess, setViewingMess] = useState<Mess | null>(null);
@@ -140,7 +141,7 @@ export const MessTab: React.FC<MessTabProps> = ({
               const messSchedules = schedules.filter((s) => (s.MessID || (s as any).mess_id) === mId);
 
               return (
-                <div key={mId} className="card-glass" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div key={mId} className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -156,7 +157,7 @@ export const MessTab: React.FC<MessTabProps> = ({
                         Mess ID: {mId}
                       </span>
                     </div>
-                    <span className="badge badge-vacant">
+                    <span className="tag-pill">
                       {mess.MessType || (mess as any).type || 'VEG'}
                     </span>
                   </div>
@@ -223,7 +224,7 @@ export const MessTab: React.FC<MessTabProps> = ({
                     </td>
                   </tr>
                 ) : (
-                  filteredEnrollments.map((enr) => {
+                  paginatedData.map((enr) => {
                     const sId = enr.StudentID || (enr as any).student_id;
                     const name = `${enr.FirstName || ''} ${enr.LastName || ''}`.trim() || enr.StudentName || sId;
                     return (
@@ -267,6 +268,13 @@ export const MessTab: React.FC<MessTabProps> = ({
                 )}
               </tbody>
             </table>
+            <PaginationFooter
+              currentPage={currentPage}
+              totalPages={totalPages}
+              setCurrentPage={setCurrentPage}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredEnrollments.length}
+            />
           </div>
         </div>
       )}

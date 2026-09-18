@@ -27,7 +27,7 @@ export const GuardianDrawer: React.FC<GuardianDrawerProps> = ({ student, onClose
     if (student) {
       setLoading(true);
       api.getGuardians(student.StudentID)
-        .then(setGuardians)
+        .then((res: any) => setGuardians(Array.isArray(res) ? res : res?.data || []))
         .catch(console.error)
         .finally(() => setLoading(false));
     }
