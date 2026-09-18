@@ -9,6 +9,7 @@ import { AllocationsTab } from './components/Accommodation/AllocationsTab';
 import { RoomDrawer } from './components/Accommodation/RoomDrawer';
 import { PersonnelTab } from './components/Personnel/PersonnelTab';
 import { StudentProfileModal } from './components/Personnel/StudentProfileModal';
+import { MessProfileModal } from './components/Mess/MessProfileModal';
 import { MessTab } from './components/Mess/MessTab';
 import { FinancialsTab } from './components/Financials/FinancialsTab';
 import { InventoryTab } from './components/Inventory/InventoryTab';
@@ -72,6 +73,23 @@ export const App: React.FC = () => {
       setSelectedStudentForProfile(s);
     } else {
       setSelectedStudentForProfile({ StudentID: studentId, FirstName: studentId, LastName: '' });
+    }
+  };
+
+  const [selectedMessForProfile, setSelectedMessForProfile] = useState<Mess | null>(null);
+  const handleSelectMessById = async (messId: string) => {
+    // Try to find the mess from global if loaded, otherwise fetch from API
+    let m = messes.find(x => x.MessID === messId || (x as any).mess_id === messId);
+    if (!m) {
+      try {
+        const allMesses = await api.getMesses();
+        m = allMesses.find(x => x.MessID === messId || (x as any).mess_id === messId);
+      } catch (e) {
+        console.error('Failed to load mess details');
+      }
+    }
+    if (m) {
+      setSelectedMessForProfile(m);
     }
   };
 
@@ -812,10 +830,6 @@ export const App: React.FC = () => {
               students={students}
               onSaveMess={handleSaveMess}
               onDeleteMess={handleDeleteMess}
-              onSaveMeal={handleSaveMeal}
-              onDeleteMeal={handleDeleteMeal}
-              onSaveSchedule={handleSaveMessSchedule}
-              onDeleteSchedule={handleDeleteMessSchedule}
               onSaveEnrollment={handleSaveMessEnrollment}
               onDeleteEnrollment={handleDeleteMessEnrollment}
               onSelectStudent={handleSelectStudentById}
@@ -866,16 +880,27 @@ export const App: React.FC = () => {
       />
 
       {/* Student Profile Modal */}
-      <StudentProfileModal
-        student={selectedStudentForProfile}
-        onClose={() => setSelectedStudentForProfile(null)}
-        onEditStudent={(s) => {
-          setSelectedStudentForProfile(null);
-          setEditingStudentFromModal(s);
-        }}
-        onDeleteStudent={handleDeleteStudent}
-        onSelectRoom={handleSelectRoomByNo}
-      />
+      {selectedStudentForProfile && (
+        <StudentProfileModal
+          student={selectedStudentForProfile}
+          onClose={() => setSelectedStudentForProfile(null)}
+          onEditStudent={(s) => {
+            setSelectedStudentForProfile(null);
+            setEditingStudentFromModal(s);
+          }}
+          onDeleteStudent={handleDeleteStudent}
+          onSelectRoom={handleSelectRoomByNo}
+          onSelectMess={handleSelectMessById}
+        />
+      )}
+
+      {/* Global Mess Profile Modal */}
+      {selectedMessForProfile && (
+        <MessProfileModal
+          mess={selectedMessForProfile}
+          onClose={() => setSelectedMessForProfile(null)}
+        />
+      )}
 
       {/* Standalone Edit Student Modal */}
       {editingStudentFromModal && (

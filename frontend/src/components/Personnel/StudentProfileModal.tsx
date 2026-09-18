@@ -9,9 +9,10 @@ interface StudentProfileModalProps {
   onEditStudent?: (student: Student) => void;
   onDeleteStudent?: (id: string) => void;
   onSelectRoom?: (roomNo: string) => void;
+  onSelectMess?: (messId: string) => void;
 }
 
-export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ student, onClose, onEditStudent, onDeleteStudent, onSelectRoom }) => {
+export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ student, onClose, onEditStudent, onDeleteStudent, onSelectRoom, onSelectMess }) => {
   const [activeTab, setActiveTab] = useState<'housing' | 'guardians' | 'mess' | 'financials'>('housing');
   const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [allocations, setAllocations] = useState<RoomAllocation[]>([]);
@@ -328,7 +329,21 @@ export const StudentProfileModal: React.FC<StudentProfileModalProps> = ({ studen
                 {enrollments.map((m) => (
                   <div key={m.EnrollmentID || (m as any).enrollment_id} style={{ background: 'var(--bg-card)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-subtle)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>{m.MessName || m.MessID}</strong>
+                      <strong 
+                        style={{ 
+                          color: onSelectMess ? 'var(--accent-primary)' : 'var(--text-primary)', 
+                          cursor: onSelectMess ? 'pointer' : 'default',
+                          textDecoration: onSelectMess ? 'none' : 'none'
+                        }}
+                        onClick={() => {
+                          if (onSelectMess && m.MessID) {
+                            onSelectMess(m.MessID);
+                          }
+                        }}
+                        title={onSelectMess ? "Jump to Mess Details" : ""}
+                      >
+                        {m.MessName || m.MessID}
+                      </strong>
                       <span className="badge badge-vacant">Active Subscription</span>
                     </div>
                     <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
