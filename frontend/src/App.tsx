@@ -19,6 +19,7 @@ import './styles/index.css';
 export const App: React.FC = () => {
   const [activeNavTab, setActiveNavTab] = useState('accommodations');
   const [subTab, setSubTab] = useState<'rooms' | 'roomTypes' | 'allocations'>('rooms');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'pure_tables'>('dashboard');
 
   const [selectedHostelId, setSelectedHostelId] = useState('ALL');
   const [rawSearchQuery, setRawSearchQuery] = useState('');
@@ -716,11 +717,8 @@ export const App: React.FC = () => {
 
       <div className="main-content">
         <Header
-          hostels={hostels}
-          selectedHostelId={selectedHostelId}
-          onSelectHostel={setSelectedHostelId}
-          searchQuery={rawSearchQuery}
-          onSearchChange={setRawSearchQuery}
+          viewMode={viewMode}
+          onToggleViewMode={setViewMode}
         />
 
         <main className="page-body">

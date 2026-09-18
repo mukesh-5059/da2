@@ -1,6 +1,12 @@
 import { Hostel, RoomType, Room, RoomAllocation, Warden, Student, Guardian, Staff, Mess, Meal, MessSchedule, MessEnrollment, MonthlyBill, PaymentTransaction, Supplier, InventoryItem, InventoryStock, ProcurementEvent } from '../types';
 
+import { mockApi } from './mockApi';
+
 const API_BASE = '/api';
+
+// Set this to true to use dummy data and disconnect from backend.
+// Change it to false when the real backend is ready to be tested.
+export const USE_MOCK_API = true;
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -10,7 +16,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
-export const api = {
+const realApi = {
   // Hostels
   getHostels: async (): Promise<Hostel[]> => {
     const res = await fetch(`${API_BASE}/hostels`);
@@ -492,3 +498,4 @@ export const api = {
   },
 };
 
+export const api = USE_MOCK_API ? mockApi : realApi;
