@@ -106,6 +106,21 @@ def get_students():
     finally:
         conn.close()
 
+@personnel_bp.route('/students/<student_id>', methods=['GET'])
+def get_student(student_id):
+    conn = get_db()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM STUDENT WHERE StudentID = ?', (student_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'error': 'Student not found'}), 404
+        return jsonify(dict(row)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 @personnel_bp.route('/students', methods=['POST'])
 def add_student():
     data = request.get_json()

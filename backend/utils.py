@@ -17,6 +17,14 @@ def paginate_query(cursor, base_query, search_columns, params=None):
     sort_col = request.args.get('sortCol', '').strip()
     sort_dir = request.args.get('sortDir', 'asc').strip()
 
+    # Extract pre-existing ORDER BY clause if present in base_query
+    import re
+    order_by_match = re.search(r'\s+(ORDER\s+BY\s+[\w\s.,]+)$', base_query, flags=re.IGNORECASE)
+    default_order_by = ""
+    if order_by_match:
+        default_order_by = order_by_match.group(1).strip()
+        base_query = base_query[:order_by_match.start()].strip()
+
     # 1. Apply Search (WHERE ... LIKE ...)
     where_clauses = []
     if search and search_columns:
@@ -32,8 +40,8 @@ def paginate_query(cursor, base_query, search_columns, params=None):
             base_query += " WHERE " + " OR ".join(where_clauses)
 
     # 2. Count total records BEFORE applying limit/offset
-    # We wrap the query as a subquery to count rows easily
-    count_query = f"SELECT COUNT(*) FROM ({base_query})"
+    # We wrap the query as a subquery with an alias for PostgreSQL & SQLite compatibility
+    count_query = f"SELECT COUNT(*) FROM ({base_query}) AS _count_subq"
     cursor.execute(count_query, params)
     total_records = cursor.fetchone()[0]
 
@@ -43,6 +51,8 @@ def paginate_query(cursor, base_query, search_columns, params=None):
         safe_col = ''.join(c for c in sort_col if c.isalnum() or c == '_')
         direction = 'DESC' if sort_dir.lower() == 'desc' else 'ASC'
         base_query += f" ORDER BY {safe_col} {direction}"
+    elif default_order_by:
+        base_query += f" {default_order_by}"
 
     # 4. Apply Pagination (LIMIT & OFFSET)
     offset = (page - 1) * limit

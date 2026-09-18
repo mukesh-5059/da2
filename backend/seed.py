@@ -1,6 +1,5 @@
 import random
 from datetime import datetime, timedelta
-import sqlite3
 import uuid
 
 # Helper lists for realistic Indian campus data generation
@@ -162,23 +161,6 @@ ITEM_APPROX_PRICES = {
     'LED Tube Lights': 180.0, 'Ceiling Fan Capacitors': 65.0, 'Washroom Tap Washers': 25.0, 'Door Locks & Keys': 220.0
 }
 
-COMPLAINT_TEMPLATES = [
-    ('Electrical', 'Room ceiling fan regulator is stuck at maximum speed.', 'Technician replaced fan regulator capacitor.'),
-    ('Electrical', 'Tube light flickering in the room.', 'Replaced LED tube light starter.'),
-    ('Electrical', 'Power socket near the study desk is loose and sparking.', 'Replaced switch socket and tightened terminal wiring.'),
-    ('Plumbing', 'Hot water geyser not heating in the floor washroom.', 'Replaced faulty heating element in geyser.'),
-    ('Plumbing', 'Washbasin tap leaking continuously causing water wastage.', 'Replaced internal rubber washer and spindle.'),
-    ('Plumbing', 'Shower head water pressure very low due to salt deposits.', 'Cleaned shower nozzle and descaled pipe fittings.'),
-    ('Furniture', 'Study chair wheel is broken and wobbling.', 'Replaced chair castor wheels.'),
-    ('Furniture', 'Cupboard latch is misaligned and door does not lock.', 'Adjusted cupboard hinges and fixed new magnetic catch.'),
-    ('Furniture', 'Bed wooden slat loose and making creaking noise.', 'Tightened bed frame joints and added support bracket.'),
-    ('Mess', 'Drinking water cooler cooling mechanism needs maintenance.', 'Serviced water cooler compressor and replaced water filter candle.'),
-    ('Mess', 'Mess counter food warmer bain-marie thermostat issue.', 'Fixed thermostat sensor calibration.'),
-    ('Pest', 'Cockroach sightings inside the room wardrobe corners.', 'Pest control gel applied; room sanitized.'),
-    ('Other', 'Window sliding mesh track is jammed with dust.', 'Track cleaned and lubricated with silicone spray.'),
-    ('Other', 'Room door lock cylinder getting jammed with key.', 'Replaced lock cylinder with fresh master-compatible unit.')
-]
-
 LEAVE_REASONS = [
     ('Weekend', 'Visiting parents in hometown for the long weekend.'),
     ('Vacation', 'Travelling home for semester break and festival holidays.'),
@@ -188,8 +170,13 @@ LEAVE_REASONS = [
     ('Emergency', 'Family emergency requiring immediate presence at home.')
 ]
 
+_id_counter = 10000
+
 def generate_id(prefix):
-    return f"{prefix}_{str(uuid.uuid4())[:8].upper()}"
+    """Generate guaranteed collision-free alphanumeric primary key IDs."""
+    global _id_counter
+    _id_counter += 1
+    return f"{prefix}_{uuid.uuid4().hex[:8].upper()}{_id_counter}"
 
 def random_date(start, end):
     return start + timedelta(days=random.randint(0, int((end - start).days)))
@@ -212,12 +199,12 @@ def clear_all(conn):
     conn.commit()
 
 def seed_all(conn, clear_first=False):
-    """Populate all tables with realistic, believable university hostel sample data."""
+    """Populate active operational tables with realistic, believable university hostel sample data."""
     if clear_first:
         clear_all(conn)
 
     cur = conn.cursor()
-    random.seed(42) # Deterministic for consistent, high quality dataset
+    random.seed(42)
 
     # 1. WARDEN
     print("Seeding WARDEN...")
@@ -240,6 +227,7 @@ def seed_all(conn, clear_first=False):
         wardens.append((w_id, fn, ln, email, phone, desig, jdate))
     cur.executemany("INSERT INTO WARDEN VALUES (?, ?, ?, ?, ?, ?, ?)", wardens)
     warden_ids = [w[0] for w in wardens]
+    conn.commit()
 
     # 2. HOSTEL
     print("Seeding HOSTEL...")
@@ -261,6 +249,7 @@ def seed_all(conn, clear_first=False):
             'location': h['location']
         })
     cur.executemany("INSERT INTO HOSTEL VALUES (?, ?, ?, ?, ?, ?, ?)", hostels)
+    conn.commit()
 
     # 3. ROOM_TYPE
     print("Seeding ROOM_TYPE...")
@@ -268,6 +257,7 @@ def seed_all(conn, clear_first=False):
     for rt_name, cap in ROOM_CAPACITIES.items():
         room_types.append((rt_name, cap, ROOM_RENTS[rt_name]))
     cur.executemany("INSERT INTO ROOM_TYPE VALUES (?, ?, ?)", room_types)
+    conn.commit()
 
     # 4. ROOM
     print("Seeding ROOM...")
@@ -277,13 +267,11 @@ def seed_all(conn, clear_first=False):
         for f in range(1, h['floors'] + 1):
             for r in range(1, h['rooms_per_floor'] + 1):
                 r_no = f"{h['code']}-{f}{r:02d}"
-                # Realistic room type allocation per floor:
-                # Lower floors: more Double / Triple. Top floors: more Single / Deluxe Single
                 if f <= 2:
                     r_type = random.choices(['Double', 'Triple', 'Single'], weights=[55, 35, 10])[0]
                 elif f < h['floors']:
                     r_type = random.choices(['Double', 'Single', 'Triple', 'Deluxe Single'], weights=[45, 30, 15, 10])[0]
-                else: # Top floor
+                else:
                     r_type = random.choices(['Single', 'Deluxe Single', 'Double'], weights=[45, 35, 20])[0]
 
                 rooms.append((r_no, f, 'Vacant', r_type, h['id']))
@@ -298,6 +286,7 @@ def seed_all(conn, clear_first=False):
                     'occupants': []
                 })
     cur.executemany("INSERT INTO ROOM VALUES (?, ?, ?, ?, ?)", rooms)
+    conn.commit()
 
     # 5. MESS
     print("Seeding MESS...")
@@ -306,20 +295,13 @@ def seed_all(conn, clear_first=False):
         messes.append((m['id'], m['name'], m['type'], m['location'], generate_phone(), m['cap']))
     cur.executemany("INSERT INTO MESS VALUES (?, ?, ?, ?, ?, ?)", messes)
     mess_ids = [m['id'] for m in MESS_CONFIGS]
+    conn.commit()
 
     # 6. STAFF
     print("Seeding STAFF...")
     staff = []
-    staff_roles = [
-        ('Chef', 'Morning', 'North Indian'), ('Chef', 'Morning', 'South Indian'),
-        ('Chef', 'Evening', 'Multi-Cuisine'), ('Chef', 'Evening', 'Continental'),
-        ('Helper', 'Morning', None), ('Helper', 'Evening', None), ('Helper', 'Night', None),
-        ('Cleaner', 'Morning', None), ('Cleaner', 'Evening', None),
-        ('Security', 'Morning', None), ('Security', 'Night', None)
-    ]
-    # Mess Staff
     for m in MESS_CONFIGS:
-        for _ in range(4): # 2 chefs, 2 kitchen helpers
+        for _ in range(4):
             s_id = generate_id('STF')
             fn = random.choice(INDIAN_FIRST_NAMES_MALE)
             ln = random.choice(INDIAN_LAST_NAMES)
@@ -330,34 +312,33 @@ def seed_all(conn, clear_first=False):
             salary = round(random.uniform(22000, 32000), 2) if is_chef else round(random.uniform(16000, 20000), 2)
             staff.append((s_id, fn, ln, generate_phone(), random_date(datetime(2020, 1, 1), datetime(2024, 1, 1)).strftime('%Y-%m-%d'),
                           salary, role, shift, cuisine, m['id'], None))
-    # Hostel Staff
     for h in hostel_objs:
-        for _ in range(4): # Cleaners and security per hostel
+        for _ in range(3):
             s_id = generate_id('STF')
             gender = 'Female' if h['type'] == 'Girls' else 'Male'
             fn = random.choice(INDIAN_FIRST_NAMES_FEMALE if gender == 'Female' else INDIAN_FIRST_NAMES_MALE)
             ln = random.choice(INDIAN_LAST_NAMES)
-            role = random.choice(['Cleaner', 'Cleaner', 'Security', 'Helper'])
+            role = random.choice(['Cleaner', 'Cleaner', 'Security'])
             shift = random.choice(['Morning', 'Evening', 'Night'])
             salary = round(random.uniform(15000, 21000), 2)
             staff.append((s_id, fn, ln, generate_phone(), random_date(datetime(2020, 1, 1), datetime(2024, 1, 1)).strftime('%Y-%m-%d'),
                           salary, role, shift, None, None, h['id']))
     cur.executemany("INSERT INTO STAFF VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", staff)
+    conn.commit()
 
     # 7. STUDENT
     print("Seeding STUDENT...")
     students = []
     student_objs = []
-    # 500 total students: ~270 Boys, ~230 Girls across batches 2021-2024
     batches = [
-        (2021, datetime(2021, 8, 1), datetime(2002, 1, 1), datetime(2003, 12, 31)), # 4th year
-        (2022, datetime(2022, 8, 1), datetime(2003, 1, 1), datetime(2004, 12, 31)), # 3rd year
-        (2023, datetime(2023, 8, 1), datetime(2004, 1, 1), datetime(2005, 12, 31)), # 2nd year
-        (2024, datetime(2024, 8, 1), datetime(2005, 1, 1), datetime(2006, 12, 31))  # 1st year
+        (2021, datetime(2021, 8, 1), datetime(2002, 1, 1), datetime(2003, 12, 31)),
+        (2022, datetime(2022, 8, 1), datetime(2003, 1, 1), datetime(2004, 12, 31)),
+        (2023, datetime(2023, 8, 1), datetime(2004, 1, 1), datetime(2005, 12, 31)),
+        (2024, datetime(2024, 8, 1), datetime(2005, 1, 1), datetime(2006, 12, 31))
     ]
-    for i in range(500):
+    for i in range(100):
         s_id = f"STD_{20240001 + i}"
-        gender = 'Male' if i < 270 else 'Female'
+        gender = 'Male' if i < 54 else 'Female'
         fn = random.choice(INDIAN_FIRST_NAMES_MALE) if gender == 'Male' else random.choice(INDIAN_FIRST_NAMES_FEMALE)
         ln = random.choice(INDIAN_LAST_NAMES)
         batch_year, adm_base, dob_start, dob_end = random.choice(batches)
@@ -367,7 +348,7 @@ def seed_all(conn, clear_first=False):
         email = f"{fn.lower()}.{ln.lower()}{str(batch_year)[-2:]}_{s_id[-4:]}@univ.edu"
         phone = generate_phone()
         bg = random.choice(BLOOD_GROUPS)
-        is_active = 1 if i < 490 else 0
+        is_active = 1 if i < 98 else 0
         students.append((s_id, fn, ln, gender, dob, email, phone, bg, dept, adm_date, is_active))
         student_objs.append({
             'id': s_id,
@@ -378,6 +359,7 @@ def seed_all(conn, clear_first=False):
             'batch': batch_year
         })
     cur.executemany("INSERT INTO STUDENT VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", students)
+    conn.commit()
 
     # 8. GUARDIAN
     print("Seeding GUARDIAN...")
@@ -398,19 +380,17 @@ def seed_all(conn, clear_first=False):
             addr = f"{random.randint(12, 180)}, Sector {random.randint(1, 25)}, {city}"
             guardians.append((g_id, stu['id'], g_name, rel, generate_phone(), f"{g_fn.lower()}.{g_ln.lower()}@gmail.com", addr))
     cur.executemany("INSERT INTO GUARDIAN VALUES (?, ?, ?, ?, ?, ?, ?)", guardians)
+    conn.commit()
 
     # 9. ROOM_ALLOCATION & Update ROOM Status
     print("Seeding ROOM_ALLOCATION...")
     allocations = []
-    # Segregate rooms by hostel gender
     boys_rooms = [r for r in room_objs if r['hostel_type'] == 'Boys']
     girls_rooms = [r for r in room_objs if r['hostel_type'] == 'Girls']
 
-    # Sort rooms floor-wise to fill rooms realistically
     boys_rooms.sort(key=lambda x: (x['hostel_id'], x['floor'], x['no']))
     girls_rooms.sort(key=lambda x: (x['hostel_id'], x['floor'], x['no']))
 
-    # Allocate active boys
     active_boys = [s for s in student_objs if s['gender'] == 'Male' and s['is_active'] == 1]
     room_ptr = 0
     student_allocated_room = {}
@@ -426,7 +406,6 @@ def seed_all(conn, clear_first=False):
             target_room['occupants'].append(stu['id'])
             student_allocated_room[stu['id']] = target_room
 
-    # Allocate active girls
     active_girls = [s for s in student_objs if s['gender'] == 'Female' and s['is_active'] == 1]
     room_ptr = 0
     for stu in active_girls:
@@ -442,14 +421,16 @@ def seed_all(conn, clear_first=False):
 
     cur.executemany("INSERT INTO ROOM_ALLOCATION VALUES (?, ?, ?, ?, ?, ?, ?)", allocations)
 
-    # Update ROOM status based on realistic occupancy & maintenance
+    # Batch update room status
+    room_status_updates = []
     for r in room_objs:
         if len(r['occupants']) > 0:
-            status = 'Occupied'
+            st = 'Occupied'
         else:
-            # 4% of vacant rooms marked under maintenance for realistic facility operations
-            status = 'UnderMaintenance' if random.random() < 0.04 else 'Vacant'
-        cur.execute("UPDATE ROOM SET Status = ? WHERE RoomNo = ?", (status, r['no']))
+            st = 'UnderMaintenance' if random.random() < 0.04 else 'Vacant'
+        room_status_updates.append((st, r['no']))
+    cur.executemany("UPDATE ROOM SET Status = ? WHERE RoomNo = ?", room_status_updates)
+    conn.commit()
 
     # 10. MEAL
     print("Seeding MEAL...")
@@ -461,6 +442,7 @@ def seed_all(conn, clear_first=False):
                 cost = round(random.uniform(40, 110), 2)
                 meals.append((meal_id, dish, f"Fresh {dish} prepared at {m['name']}", cost, m['id']))
     cur.executemany("INSERT INTO MEAL VALUES (?, ?, ?, ?, ?)", meals)
+    conn.commit()
 
     # 11. MESS_SCHEDULE
     print("Seeding MESS_SCHEDULE...")
@@ -477,6 +459,7 @@ def seed_all(conn, clear_first=False):
                     selected_meal = random.choice(time_meals)
                     schedules.append((sch_id, m['id'], selected_meal[0], day, m_time))
     cur.executemany("INSERT INTO MESS_SCHEDULE VALUES (?, ?, ?, ?, ?)", schedules)
+    conn.commit()
 
     # 12. MESS_ENROLLMENT
     print("Seeding MESS_ENROLLMENT...")
@@ -491,6 +474,7 @@ def seed_all(conn, clear_first=False):
             enrollments.append((e_id, stu['id'], m_id, plan, start_date, None, 1))
             student_mess_plan[stu['id']] = plan
     cur.executemany("INSERT INTO MESS_ENROLLMENT VALUES (?, ?, ?, ?, ?, ?, ?)", enrollments)
+    conn.commit()
 
     # 13. SUPPLIER & 14. INVENTORY_ITEM & 15. PROCUREMENT_EVENT & 16. INVENTORY_STOCK
     print("Seeding SUPPLIER & INVENTORY...")
@@ -516,35 +500,30 @@ def seed_all(conn, clear_first=False):
     cur.executemany("INSERT INTO SUPPLIER VALUES (?, ?, ?, ?, ?)", suppliers)
     cur.executemany("INSERT INTO INVENTORY_ITEM VALUES (?, ?, ?, ?)", inventory_items)
 
-    # Procurements across the semester
     for m in MESS_CONFIGS:
         for s_id, itm_list in supplier_item_map.items():
             for i_id, itm_name, unit in itm_list:
-                # 2-3 purchase batches
-                for _ in range(random.randint(2, 4)):
+                for _ in range(1):  # 1 purchase record per item per mess
                     p_id = generate_id('PRC')
                     base_price = ITEM_APPROX_PRICES.get(itm_name, 50.0)
                     unit_price = round(base_price * random.uniform(0.95, 1.05), 2)
-                    qty = round(random.uniform(25, 200) if unit != 'units' else random.randint(100, 600), 2)
+                    qty = round(random.uniform(25, 150) if unit != 'units' else random.randint(50, 250), 2)
                     total_cost = round(qty * unit_price, 2)
                     p_date = random_date(datetime(2024, 8, 1), datetime(2024, 12, 15)).strftime('%Y-%m-%d')
                     procurements.append((p_id, m['id'], s_id, i_id, qty, p_date, unit_price, total_cost))
 
-                # Current stock
-                cur_qty = round(random.uniform(15, 80) if unit != 'units' else random.randint(20, 150), 2)
+                cur_qty = round(random.uniform(15, 80) if unit != 'units' else random.randint(20, 100), 2)
                 upd_date = random_date(datetime(2024, 12, 10), datetime(2024, 12, 28)).strftime('%Y-%m-%d')
                 stocks.append((m['id'], i_id, cur_qty, upd_date))
     cur.executemany("INSERT INTO PROCUREMENT_EVENT VALUES (?, ?, ?, ?, ?, ?, ?, ?)", procurements)
     cur.executemany("INSERT INTO INVENTORY_STOCK VALUES (?, ?, ?, ?)", stocks)
+    conn.commit()
 
     # 17. MONTHLY_BILL & 18. PAYMENT_TRANSACTION
-    # Realistic billing scenarios:
-    # Most students pay on time (~86%), small fraction have current month pending (~8%),
-    # partial payments (~4%), and true overdue defaulters (~2%).
     print("Seeding MONTHLY_BILL & PAYMENT_TRANSACTION...")
     bills = []
     payments = []
-    months = [6, 7, 8, 9] # Jun, Jul, Aug, Sep 2025
+    months = [8, 9]  # Only 2 billing months
     year = 2025
 
     for stu_idx, stu in enumerate(student_objs):
@@ -556,11 +535,6 @@ def seed_all(conn, clear_first=False):
         plan = student_mess_plan.get(stu['id'], 'Veg')
         mess_fee = 3000.0 if plan == 'Veg' else (3600.0 if plan == 'NonVeg' else 4200.0)
 
-        # Categorize student payment behavior profile:
-        # Profile A: On-time payer (86%)
-        # Profile B: Current month unpaid/pending (8%)
-        # Profile C: Current month partial installment (4%)
-        # Profile D: Overdue defaulter with multiple months pending (2%)
         rand_val = random.random()
         if rand_val < 0.86:
             profile = 'ON_TIME'
@@ -583,15 +557,13 @@ def seed_all(conn, clear_first=False):
                 status = 'Paid' if m < 9 else 'Unpaid'
             elif profile == 'CURRENT_PARTIAL':
                 status = 'Paid' if m < 9 else 'Partial'
-            else: # OVERDUE
-                status = 'Paid' if m <= 7 else 'Unpaid'
+            else:
+                status = 'Paid' if m <= 8 else 'Unpaid'
 
             bills.append((b_id, stu['id'], m, year, room_rent, mess_fee, other_chg, total, due_date, status))
 
-            # Record corresponding payment transactions
             if status == 'Paid':
                 p_id = generate_id('PAY')
-                # Paid on or before due date
                 pay_day = random.randint(1, 14)
                 pay_date = f"{year}-{m:02d}-{pay_day:02d}"
                 mode = random.choices(['UPI', 'BankTransfer', 'Card', 'Cash'], weights=[65, 20, 10, 5])[0]
@@ -607,73 +579,12 @@ def seed_all(conn, clear_first=False):
 
     cur.executemany("INSERT INTO MONTHLY_BILL VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", bills)
     cur.executemany("INSERT INTO PAYMENT_TRANSACTION VALUES (?, ?, ?, ?, ?, ?)", payments)
+    conn.commit()
 
-    # 19. COMPLAINT
-    print("Seeding COMPLAINT...")
-    complaints = []
-    for _ in range(120):
-        c_id = generate_id('CMP')
-        stu = random.choice([s for s in student_objs if s['is_active']])
-        cat, desc_tmpl, rem_tmpl = random.choice(COMPLAINT_TEMPLATES)
-        stu_room = student_allocated_room.get(stu['id'])
-
-        is_room_complaint = random.choice([True, True, False])
-        if is_room_complaint and stu_room:
-            r_no = stu_room['no']
-            loc = None
-            desc = f"Room {r_no}: {desc_tmpl}"
-        else:
-            r_no = None
-            loc = random.choice([
-                '2nd Floor Common Washroom', '3rd Floor East Wing Corridor',
-                'Ground Floor Drinking Water Station', 'Mess Dining Hall', 'Study Room 1st Floor'
-            ])
-            desc = f"{loc}: {desc_tmpl}"
-
-        file_dt = random_date(datetime(2024, 8, 15), datetime(2024, 12, 1))
-        file_date_str = file_dt.strftime('%Y-%m-%d')
-        status = random.choices(['Resolved', 'InProgress', 'Open', 'Rejected'], weights=[65, 18, 12, 5])[0]
-
-        if status == 'Resolved':
-            res_date_str = (file_dt + timedelta(days=random.randint(1, 4))).strftime('%Y-%m-%d')
-            remarks = rem_tmpl
-        elif status == 'Rejected':
-            res_date_str = (file_dt + timedelta(days=1)).strftime('%Y-%m-%d')
-            remarks = "Inspection found no active defect or duplicate entry."
-        else:
-            res_date_str = None
-            remarks = None
-
-        complaints.append((c_id, stu['id'], r_no, loc, cat, desc, file_date_str, status, res_date_str, remarks))
-    cur.executemany("INSERT INTO COMPLAINT VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", complaints)
-
-    # 20. VISITOR_LOG
-    print("Seeding VISITOR_LOG...")
-    visitors = []
-    for _ in range(180):
-        v_id = generate_id('VS')
-        stu = random.choice([s for s in student_objs if s['is_active']])
-        v_ln = stu['name'].split()[-1]
-        rel = random.choices(['Parent', 'Mother', 'Sibling', 'Friend'], weights=[45, 30, 15, 10])[0]
-        if rel in ['Parent', 'Sibling', 'Friend']:
-            v_fn = random.choice(INDIAN_FIRST_NAMES_MALE)
-        else:
-            v_fn = random.choice(INDIAN_FIRST_NAMES_FEMALE)
-        v_name = f"{v_fn} {v_ln if rel != 'Friend' else random.choice(INDIAN_LAST_NAMES)}"
-        purpose = random.choice([
-            'Drop semester luggage & meet', 'Weekend visit & family lunch',
-            'Deliver essentials & documents', 'Campus visit'
-        ])
-        cin_dt = random_date(datetime(2024, 8, 1), datetime(2024, 12, 10))
-        cout_dt = cin_dt + timedelta(hours=random.uniform(0.75, 3.5))
-        visitors.append((v_id, stu['id'], v_name, generate_phone(), rel if rel != 'Mother' else 'Parent', purpose,
-                         cin_dt.strftime('%Y-%m-%d %H:%M:%S'), cout_dt.strftime('%Y-%m-%d %H:%M:%S')))
-    cur.executemany("INSERT INTO VISITOR_LOG VALUES (?, ?, ?, ?, ?, ?, ?, ?)", visitors)
-
-    # 21. LEAVE_REQUEST
+    # 19. LEAVE_REQUEST
     print("Seeding LEAVE_REQUEST...")
     leaves = []
-    for _ in range(150):
+    for _ in range(20):
         l_id = generate_id('LV')
         stu = random.choice([s for s in student_objs if s['is_active']])
         l_type, l_reason = random.choice(LEAVE_REASONS)
@@ -684,23 +595,9 @@ def seed_all(conn, clear_first=False):
         w_id = random.choice(warden_ids) if status != 'Pending' else None
         leaves.append((l_id, stu['id'], l_type, from_dt.strftime('%Y-%m-%d'), to_dt.strftime('%Y-%m-%d'), l_reason, status, w_id))
     cur.executemany("INSERT INTO LEAVE_REQUEST VALUES (?, ?, ?, ?, ?, ?, ?, ?)", leaves)
+    conn.commit()
 
-    # 22. ATTENDANCE_LOG
-    print("Seeding ATTENDANCE_LOG...")
-    attendance = []
-    sample_dates = [datetime(2024, 11, d) for d in range(1, 15)] # 14 days of curfew attendance
-    for d in sample_dates:
-        d_str = d.strftime('%Y-%m-%d')
-        for stu in student_objs:
-            if not stu['is_active']:
-                continue
-            a_id = generate_id('ATN')
-            status = random.choices(['Present', 'Absent', 'OnLeave'], weights=[92, 5, 3])[0]
-            punch = (d + timedelta(hours=random.randint(20, 22), minutes=random.randint(0, 59))).strftime('%H:%M:%S') if status == 'Present' else None
-            attendance.append((a_id, stu['id'], d_str, status, punch))
-    cur.executemany("INSERT INTO ATTENDANCE_LOG VALUES (?, ?, ?, ?, ?)", attendance)
-
-    # 23. NOTICE
+    # 20. NOTICE
     print("Seeding NOTICE...")
     notices = [
         ('Hostel Main Gate Curfew Timings', 'All residents are reminded that hostel biometric entry closes strictly at 10:30 PM on weekdays.', 30),
@@ -719,14 +616,14 @@ def seed_all(conn, clear_first=False):
             w_id = random.choice(warden_ids)
             notice_rows.append((n_id, h['id'], title, content, p_dt.strftime('%Y-%m-%d'), w_id, exp_dt))
     cur.executemany("INSERT INTO NOTICE VALUES (?, ?, ?, ?, ?, ?, ?)", notice_rows)
-
     conn.commit()
-    print("All university hostel dataset seeded successfully with realistic scenarios!")
+
+    print("Active database tables populated successfully with realistic data!")
 
 if __name__ == '__main__':
-    import os
-    db_path = os.path.join(os.path.dirname(__file__), 'hostel.db')
-    conn = sqlite3.connect(db_path)
-    conn.execute('PRAGMA foreign_keys = ON')
+    from database import get_db, init_db, is_cloud_mode
+    print(f"Initializing & seeding database (Mode: {'Cloud / Neon PostgreSQL' if is_cloud_mode() else 'Local / SQLite'})...")
+    init_db()
+    conn = get_db()
     seed_all(conn, clear_first=True)
     conn.close()

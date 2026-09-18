@@ -1,15 +1,206 @@
-import sqlite3
 import os
+import sqlite3
+
+# Load .env variables (using python-dotenv if available, else lightweight fallback)
+ENV_PATH = os.path.join(os.path.dirname(__file__), '.env')
+if os.path.exists(ENV_PATH):
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(ENV_PATH)
+    except ImportError:
+        with open(ENV_PATH, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip("'\""))
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'hostel.db')
+DB_MODE = os.getenv('DB_MODE', 'local').strip().lower()
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+
+def is_cloud_mode():
+    return DB_MODE in ('cloud', 'postgres', 'postgresql', 'neon') or bool(DATABASE_URL and DB_MODE != 'local')
+
+
+def _convert_query(query):
+    """Converts SQLite '?' parameter placeholders to PostgreSQL '%s'."""
+    if '?' not in query:
+        return query
+    parts = []
+    in_quote = False
+    quote_char = ''
+    for char in query:
+        if char in ("'", '"'):
+            if not in_quote:
+                in_quote = True
+                quote_char = char
+            elif quote_char == char:
+                in_quote = False
+            parts.append(char)
+        elif char == '?' and not in_quote:
+            parts.append('%s')
+        else:
+            parts.append(char)
+    return ''.join(parts)
+
+
+class PostgresRow:
+    """Dict-like and index-accessible row wrapper that mirrors sqlite3.Row."""
+    def __init__(self, description, values):
+        self._keys = [col.name for col in description] if description else []
+        self._values = list(values)
+        self._lower_map = {k.lower(): i for i, k in enumerate(self._keys)}
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._values[key]
+        idx = self._lower_map.get(str(key).lower())
+        if idx is not None:
+            return self._values[idx]
+        raise KeyError(key)
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def keys(self):
+        return self._keys
+
+    def values(self):
+        return self._values
+
+    def items(self):
+        return [(k, self._values[i]) for i, k in enumerate(self._keys)]
+
+    def __iter__(self):
+        return iter(self._keys)
+
+    def __len__(self):
+        return len(self._keys)
+
+    def __repr__(self):
+        return repr(dict(self.items()))
+
+
+class PostgresCursorWrapper:
+    """Wraps psycopg2 / psycopg cursor to emulate sqlite3 cursor."""
+    def __init__(self, raw_cursor):
+        self._cursor = raw_cursor
+
+    def execute(self, query, params=None):
+        converted = _convert_query(query)
+        if params is not None:
+            # Convert list/tuple params to tuple for psycopg2
+            self._cursor.execute(converted, tuple(params) if isinstance(params, (list, tuple)) else params)
+        else:
+            self._cursor.execute(converted)
+        return self
+
+    def executemany(self, query, params_seq):
+        converted = _convert_query(query)
+        params_list = list(params_seq)
+        if not params_list:
+            return self
+        # execute_values batches all rows into a single multi-row INSERT,
+        # sending one network round-trip instead of N (one per row).
+        # Fall back to standard executemany for UPDATE/DELETE statements.
+        stripped = converted.strip().upper()
+        if stripped.startswith('INSERT') and hasattr(self, '_use_execute_values'):
+            from psycopg2.extras import execute_values
+            # execute_values expects a template with %s not (%s, %s, ...) tuple syntax
+            # Convert "INSERT INTO T VALUES (%s, %s)" → template "INSERT INTO T VALUES %s"
+            import re
+            template = re.sub(r'\(%s(?:,\s*%s)*\)\s*$', '%s', converted, flags=re.IGNORECASE)
+            execute_values(self._cursor, template, params_list, page_size=500)
+        elif stripped.startswith('INSERT'):
+            try:
+                from psycopg2.extras import execute_values
+                import re
+                template = re.sub(r'\(%s(?:,\s*%s)*\)\s*$', '%s', converted, flags=re.IGNORECASE)
+                execute_values(self._cursor, template, params_list, page_size=500)
+            except Exception:
+                self._cursor.executemany(converted, params_list)
+        else:
+            self._cursor.executemany(converted, params_list)
+        return self
+
+
+    def fetchone(self):
+        row = self._cursor.fetchone()
+        if row is None:
+            return None
+        return PostgresRow(self._cursor.description, row)
+
+    def fetchall(self):
+        rows = self._cursor.fetchall()
+        desc = self._cursor.description
+        return [PostgresRow(desc, r) for r in rows]
+
+    def close(self):
+        self._cursor.close()
+
+    @property
+    def rowcount(self):
+        return self._cursor.rowcount
+
+    @property
+    def description(self):
+        return self._cursor.description
+
+
+class PostgresConnectionWrapper:
+    """Wraps psycopg2 connection to provide a unified API with sqlite3."""
+    def __init__(self, raw_conn):
+        self._conn = raw_conn
+
+    def cursor(self):
+        return PostgresCursorWrapper(self._conn.cursor())
+
+    def commit(self):
+        self._conn.commit()
+
+    def rollback(self):
+        self._conn.rollback()
+
+    def close(self):
+        self._conn.close()
+
+    def execute(self, query, params=None):
+        cur = self.cursor()
+        cur.execute(query, params)
+        return cur
+
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA foreign_keys = ON')
-    return conn
+    """Returns database connection based on DB_MODE (local SQLite vs Neon PostgreSQL)."""
+    if is_cloud_mode():
+        if not DATABASE_URL:
+            raise ValueError("DB_MODE is set to 'cloud' but DATABASE_URL is not configured in .env")
+        try:
+            import psycopg2
+            raw_conn = psycopg2.connect(DATABASE_URL)
+            return PostgresConnectionWrapper(raw_conn)
+        except ImportError:
+            try:
+                import psycopg
+                raw_conn = psycopg.connect(DATABASE_URL)
+                return PostgresConnectionWrapper(raw_conn)
+            except ImportError:
+                raise ImportError(
+                    "PostgreSQL driver not installed. Please install psycopg2-binary: pip install psycopg2-binary python-dotenv"
+                )
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA foreign_keys = ON')
+        return conn
+
 
 def init_db():
+    """Initializes schema and tables for active database (SQLite or Neon PostgreSQL)."""
     conn = get_db()
     cursor = conn.cursor()
     
@@ -338,14 +529,5 @@ def init_db():
     ''')
 
     conn.commit()
-
-    # Seed data if tables are empty
-    cursor.execute('SELECT COUNT(*) FROM WARDEN')
-    if cursor.fetchone()[0] == 0:
-        try:
-            from seed import seed_all
-            seed_all(conn)
-        except ImportError:
-            pass
-
     conn.close()
+
